@@ -63,6 +63,3 @@ s.add_course("CS245", ["LEC1", "LEC2", "LEC3"], ["TUT1", "TUT2", "TUT3"])
 s.add_conflict(("CS245", "LEC1"), ("CS246", "LEC3"))
 for schedule in s.solve():
     print(schedule)
-
-import sys
-sys.exit()
