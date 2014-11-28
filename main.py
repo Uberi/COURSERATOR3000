@@ -6,7 +6,8 @@ class Schedule:
     def __init__(self):
         self.constraints = []
         self.variable_index = 1 # used to generate unique variable names
-        self.variable_mapping = {}
+        self.name_mapping = {}
+        self.index_mapping = {}
     
     def constrain_requirement(self, variable_list):
         """
@@ -32,17 +33,36 @@ class Schedule:
         Solves the constraints using a SAT solving algorithm and processes the results.
         """
         import pycosat
-        return ([y for y in x if y > 0] for x in pycosat.itersolve(s.constraints))
+        return ({self.index_mapping[y] for y in x if y > 0} for x in pycosat.itersolve(s.constraints))
+    
+    def register_variable(self, name):
+        if name in self.name_mapping: return self.name_mapping[name]
+        self.name_mapping[name] = self.variable_index
+        self.index_mapping[self.variable_index] = name
+        result = self.variable_index
+        self.variable_index += 1
+        return result
     
     def add_course(self, name, lecture_sections = None, tutorial_sections = None, lab_sections = None):
         if lecture_sections != None:
-            pass
+            sections = [self.register_variable((name, section)) for section in lecture_sections]
+            self.constrain_requirement(sections)
+        if tutorial_sections != None:
+            sections = [self.register_variable((name, section)) for section in tutorial_sections]
+            self.constrain_requirement(sections)
+        if lab_sections != None:
+            sections = [self.register_variable((name, section)) for section in lab_sections]
+            self.constrain_requirement(sections)
+    
+    def add_conflict(self, section1, section2):
+        self.constrain_conflict([self.register_variable(section1), self.register_variable(section2)])
 
 s = Schedule()
-#s.add_course("CS246", ["LEC1", "LEC2", "LEC3"])
-s.constrain_course([1, 2, 3])
-s.constrain_course([4, 5, 6])
-print(list(s.solve()))
+s.add_course("CS246", ["LEC1", "LEC2", "LEC3"], ["TUT1", "TUT2", "TUT3"])
+s.add_course("CS245", ["LEC1", "LEC2", "LEC3"], ["TUT1", "TUT2", "TUT3"])
+s.add_conflict(("CS245", "LEC1"), ("CS246", "LEC3"))
+for schedule in s.solve():
+    print(schedule)
 
 import sys
 sys.exit()
