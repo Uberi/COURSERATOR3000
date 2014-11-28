@@ -48,7 +48,9 @@ def get_class_times(description, default_start_date, default_end_date):
 
 def get_course_sections(term, course, default_start_date, default_end_date):
     subject, catalog_number = re.match("([a-zA-Z]+)\s*(\d+)", course).groups()
-    course_data = uwapi("terms/{0}/{1}/{2}/schedule".format(term, subject, catalog_number))
+    #course_data = uwapi("terms/{0}/{1}/{2}/schedule".format(term, subject, catalog_number))
+    import json;  course_data = json.load(open("Course Schedule by Term.json", "r")) #wip: debug
+    
     result = {}
     for section in course_data:
         times = []
