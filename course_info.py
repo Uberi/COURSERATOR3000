@@ -56,7 +56,3 @@ def get_course_sections(term, course, default_start_date, default_end_date):
             times += get_class_times(classes["date"], default_start_date, default_end_date)
         result[section["section"]] = sorted(times, key=lambda x: x[0])
     return result
-
-result = get_course_sections(1151, "CS246", datetime(2015, 1, 5), datetime(2015, 5, 1)) # winter 2015
-for k, v in result.items():
-    print(k, v)
