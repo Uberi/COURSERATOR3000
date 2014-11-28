@@ -7,7 +7,7 @@ import itertools
 term = 1151 # winter 2015
 term_start, term_end = datetime(2015, 1, 5), datetime(2015, 5, 1)
 term_start, term_end = datetime(2015, 1, 5), datetime(2015, 1, 9)
-courses = ["CS246", "CS136"]
+courses = ["CS246", "CS245", "ECE124"]
 
 import course_info
 from scheduler import Scheduler
@@ -71,17 +71,17 @@ for section1, section2 in conflicts:
     scheduler.add_conflict(section1, section2)
 print("\n".join(sorted(section1[0] + " " + section1[1] + " conflicts with " + section2[0] + " " + section2[1] for section1, section2 in conflicts)))
 
-print(scheduler.constraints)
+print("=== solving for schedules")
+for constraint in scheduler.get_constraints():
+    print("\t".join(constraint))
 
 schedules = list(scheduler.solve())
-
-print("=== solved for schedules")
 
 possibility_space = 1
 for sections in requirements.values():
     possibility_space *= len(sections)
+print(len(schedules), " valid schedules out of ", possibility_space, " possibilities")
 
-print("schedule candidates:", possibility_space)
-print("number of schedules:", len(schedules))
-for schedule in schedules:
+print("first 30 schedules:")
+for schedule in schedules[:min(30, len(schedules))]:
     print(schedule)

@@ -26,7 +26,7 @@ class Scheduler:
         
         Generates CNF constraints such that zero or one of the variables in `variable_list` is true.
         """
-        self.constraints += ([-x[0], -x[1]] for x in itertools.combinations(variable_list, 2)) # no more than one variable is true
+        self.constraints += ([-a, -b] for a, b in itertools.combinations(variable_list, 2)) # no more than one variable is true
 
     def solve(self):
         """
@@ -51,3 +51,6 @@ class Scheduler:
     def add_conflict(self, section1, section2):
         conflict_variables = [self.register_variable(section1), self.register_variable(section2)]
         self.constrain_conflict(conflict_variables)
+    
+    def get_constraints(self):
+        return sorted(sorted(("~" if x < 0 else "") + " ".join(self.index_mapping[abs(x)]) for x in constraint) for constraint in self.constraints)
