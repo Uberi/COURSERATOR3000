@@ -35,7 +35,7 @@ class Scheduler:
         Solves the constraints using a SAT solving algorithm and processes the results.
         """
         return ({self.index_mapping[y] for y in x if y > 0} for x in pycosat.itersolve(self.constraints))
-    
+
     def register_variable(self, name):
         if name in self.name_mapping: return self.name_mapping[name]
         self.name_mapping[name] = self.variable_index
@@ -51,6 +51,14 @@ class Scheduler:
     def add_conflict(self, section1, section2):
         conflict_variables = [self.register_variable(section1), self.register_variable(section2)]
         self.constrain_conflict(conflict_variables)
-    
-    def get_constraints(self):
-        return sorted(sorted(("~" if x < 0 else "") + " ".join(self.index_mapping[abs(x)]) for x in constraint) for constraint in self.constraints)
+
+if __name__ == "__main__":
+    s = Scheduler()
+    s.add_requirement("CS246", ["LEC 001", "LEC 002", "LEC 003"])
+    s.add_requirement("CS246", ["TUT 001", "TUT 002", "TUT 003"])
+    s.add_requirement("CS245", ["LEC 001", "LEC 002", "LEC 003"])
+    s.add_requirement("CS245", ["TUT 001", "TUT 002", "TUT 003"])
+    s.add_conflict(("CS245", "LEC 001"), ("CS246", "LEC 003"))
+    print("Non-conflicting schedules:")
+    for schedule in s.solve():
+        print(schedule)

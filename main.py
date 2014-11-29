@@ -1,90 +1,98 @@
 #!/usr/bin/env python3
 
 from collections import defaultdict
-from datetime import datetime
-import itertools
+from datetime import datetime, timedelta
 
 term = 1151 # winter 2015
 term_start, term_end = datetime(2015, 1, 5), datetime(2015, 5, 1)
-term_start, term_end = datetime(2015, 1, 5), datetime(2015, 1, 9) #wip: debug
-courses = ["CS246", "CS245", "ECE124"]
+#term_start, term_end = datetime(2015, 1, 5), datetime(2015, 1, 9) #wip: debug
+courses = ["CS240", "CS241", "ECE124", "ECON201", "SCI267"]
 
 import course_info
 from scheduler import Scheduler
-
-def block_compare(block1, block2):
-    """
-    Produces 0 if the blocks conflict, -1 if `block1` precedes `block2`, and 1 if `block1` follows `block2`.
-    
-    Blocks are 2-tuples where the first element is the start time of a section block as a `datetime`, and the second element is the block duration as a `timedelta`.
-    """
-    if block1[0] + block1[1] <= block2[0]: return -1 # `block1` is too early to conflict with `block2`
-    if block1[0] >= block2[0] + block2[1]: return 1 # `block1` is too late to conflict with `block2`
-    return 0 # blocks conflict with each other
-
-def check_section_conflict(section1, section2): # $O(n)$ where $n$ is `max(len(section1), len(section2))`
-    """
-    Produces True if `section1` conflicts with `section2`, and False otherwise.
-    
-    Sections are lists of blocks.
-    """
-    index1, index2 = 0, 0
-    while index1 < len(section1) and index2 < len(section2):
-        status = block_compare(section1[index1], section2[index2])
-        if status == -1: index1 += 1
-        elif status == 1: index2 += 1
-        else: # found conflicting block
-            return True
-    return False
+import conflict_checker
 
 def get_requirements(course_sections): # group sections by course and instruction type
     requirements = defaultdict(list)
-    for course, sections in course_sections.items():
-        for section, blocks in sections.items():
-            category = (course, section[:3]) # course code and instruction type (first three letters of section)
-            requirements[category].append(section)
+    for section, blocks in course_sections.items():
+        category = (section[0], section[1][:3]) # course code and instruction type (first three letters of section)
+        requirements[category].append(section)
+    print(requirements)
     return requirements
 
-def get_conflicts(requirements, course_sections):
-    for (name1, requirements1), (name2, requirements2) in itertools.combinations(requirements.items(), 2):
-        for section_name1 in requirements1:
-            section_blocks1 = course_sections[name1[0]][section_name1]
-            for section_name2 in requirements2:
-                section_blocks2 = course_sections[name2[0]][section_name2]
-                if check_section_conflict(section_blocks1, section_blocks2):
-                    yield (name1[0], section_name1), (name2[0], section_name2)
+def compute_schedules(course_sections):
+    """
+    Computes a list of valid schedules given a course sections map.
+
+    A course sections map is a dictionary mapping course names to dictionaries mapping section names to a list of sections.
+
+    A section is a 2-tuple containing the course name and section name, both strings.
+    """
+    scheduler = Scheduler()
+
+    # group sections by course and instruction type
+    requirements = get_requirements(course_sections)
+    print(requirements)
+    for requirement, sections in requirements.items():
+        scheduler.add_requirement(requirement[0], sections)
+
+    print("=========================================================")
+    print("=== generating conflict constraints")
+    print("=========================================================")
+
+    # find section conflicts
+    conflicts = list(conflict_checker.get_conflicts(requirements, course_sections))
+    for section1, section2 in conflicts:
+        scheduler.add_conflict(section1, section2)
+    print("\n".join(sorted(section1[0] + " " + section1[1] + "\tconflicts with\t" + section2[0] + " " + section2[1] for section1, section2 in conflicts)))
+
+    print("=========================================================")
+    print("=== solving for schedules")
+    print("=========================================================")
+
+    schedules = list(scheduler.solve())
+
+    possibility_space = 1
+    for sections in requirements.values(): possibility_space *= len(sections)
+    print(len(schedules), "valid schedules found out of", possibility_space, "possibilities")
+
+    return schedules
+
+def get_schedule(course_sections, schedule, start, end):
+    """
+    Given a schedule and time listings for various course sections, calculates every class in that schedule between `start` and `end`.
+
+    A schedule is simply a list of sections.
+
+    A section is a 2-tuple containing the course name and section name, both strings.
+    """
+    end = end + timedelta(days=1) # add one day to represent the end of that day
+    result = []
+    for section in schedule:
+        for block in course_sections[section]:
+            if start <= block[0] and block[0] + block[1] < end:
+                result.append((section, block))
+    result = sorted(result, key=lambda x: x[1])
+    return result
 
 # obtain a dictionary mapping course names to dictionaries mapping section names to lists of time blocks
-course_sections = {course: course_info.get_course_sections(term, course, term_start, term_end) for course in courses}
+#courses_data = course_info.get_courses_data(term, courses)
+from test_data import courses_data
+course_sections = course_info.get_courses_sections(courses_data, term_start, term_end)
 
-scheduler = Scheduler()
+schedules = compute_schedules(course_sections)
 
-print("=== generating requirement constraints")
+print("=========================================================")
+print("=== schedule results")
+print("=========================================================")
 
-# group sections by course and instruction type
-requirements = get_requirements(course_sections)
-for requirement, sections in requirements.items():
-    scheduler.add_requirement(requirement[0], sections)
-    print(requirement[0] + " " + requirement[1] + "\t" + ", ".join(sections))
+#print(course_info.get_course_entries(courses_data, schedules[0]))
 
-print("=== generating conflict constraints")
+print(schedules)
 
-# find section conflicts
-conflicts = list(get_conflicts(requirements, course_sections))[:1]
-for section1, section2 in conflicts:
-    scheduler.add_conflict(section1, section2)
-print("\n".join(sorted(section1[0] + " " + section1[1] + " conflicts with " + section2[0] + " " + section2[1] for section1, section2 in conflicts)))
+print(get_schedule(course_sections, schedules[0], datetime(2015, 1, 12), datetime(2015, 1, 16)))
 
-print("=== solving for schedules")
-for constraint in scheduler.get_constraints():
-    print("\t".join(constraint))
+import sys; sys.exit()
 
-schedules = list(scheduler.solve())
-
-possibility_space = 1
-for sections in requirements.values(): possibility_space *= len(sections)
-print(len(schedules), " valid schedules out of ", possibility_space, " possibilities")
-
-print("first 30 schedules:")
-for schedule in schedules[:min(30, len(schedules))]:
+for schedule in schedules:
     print(schedule)
