@@ -14,10 +14,9 @@ import conflict_checker
 
 def get_requirements(course_sections): # group sections by course and instruction type
     requirements = defaultdict(list)
-    for section, blocks in course_sections.items():
-        category = (section[0], section[1][:3]) # course code and instruction type (first three letters of section)
+    for (course, section), blocks in course_sections.items():
+        category = (course, section[:3]) # course code and instruction type (first three letters of section)
         requirements[category].append(section)
-    print(requirements)
     return requirements
 
 def compute_schedules(course_sections):
@@ -32,7 +31,6 @@ def compute_schedules(course_sections):
 
     # group sections by course and instruction type
     requirements = get_requirements(course_sections)
-    print(requirements)
     for requirement, sections in requirements.items():
         scheduler.add_requirement(requirement[0], sections)
 
@@ -58,7 +56,7 @@ def compute_schedules(course_sections):
 
     return schedules
 
-def get_schedule(course_sections, schedule, start, end):
+def get_schedule_json(course_sections, schedule, start, end):
     """
     Given a schedule and time listings for various course sections, calculates every class in that schedule between `start` and `end`.
 
@@ -66,14 +64,21 @@ def get_schedule(course_sections, schedule, start, end):
 
     A section is a 2-tuple containing the course name and section name, both strings.
     """
+    import json
+
     end = end + timedelta(days=1) # add one day to represent the end of that day
     result = []
     for section in schedule:
         for block in course_sections[section]:
             if start <= block[0] and block[0] + block[1] < end:
-                result.append((section, block))
-    result = sorted(result, key=lambda x: x[1])
-    return result
+                result.append({
+                    "start": (block[0] - start).total_seconds(),
+                    "duration": block[1].total_seconds(),
+                    "class": section[0],
+                    "section": section[1],
+                })
+    result = sorted(result, key=lambda x: x["start"])
+    return json.dumps(result)
 
 # obtain a dictionary mapping course names to dictionaries mapping section names to lists of time blocks
 #courses_data = course_info.get_courses_data(term, courses)
@@ -82,15 +87,11 @@ course_sections = course_info.get_courses_sections(courses_data, term_start, ter
 
 schedules = compute_schedules(course_sections)
 
-print("=========================================================")
-print("=== schedule results")
-print("=========================================================")
-
 #print(course_info.get_course_entries(courses_data, schedules[0]))
 
-print(schedules)
+result = get_schedule_json(course_sections, schedules[0], datetime(2015, 1, 12), datetime(2015, 1, 16))
 
-print(get_schedule(course_sections, schedules[0], datetime(2015, 1, 12), datetime(2015, 1, 16)))
+print(result)
 
 import sys; sys.exit()
 

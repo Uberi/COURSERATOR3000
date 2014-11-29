@@ -30,11 +30,11 @@ def check_section_conflict(section1, section2): # $O(n)$ where $n$ is `max(len(s
 def get_conflicts(requirements, course_sections):
     for (name1, requirements1), (name2, requirements2) in itertools.combinations(requirements.items(), 2):
         for section_name1 in requirements1:
-            section_blocks1 = course_sections[section_name1]
+            section_blocks1 = course_sections[(name1[0], section_name1)]
             for section_name2 in requirements2:
-                section_blocks2 = course_sections[section_name2]
+                section_blocks2 = course_sections[(name2[0], section_name2)]
                 if check_section_conflict(section_blocks1, section_blocks2):
-                    yield section_name1, section_name2
+                    yield (name1[0], section_name1), (name2[0], section_name2)
 
 if __name__ == "__main__":
     import datetime
