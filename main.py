@@ -6,7 +6,7 @@ import itertools
 
 term = 1151 # winter 2015
 term_start, term_end = datetime(2015, 1, 5), datetime(2015, 5, 1)
-term_start, term_end = datetime(2015, 1, 5), datetime(2015, 1, 9)
+term_start, term_end = datetime(2015, 1, 5), datetime(2015, 1, 9) #wip: debug
 courses = ["CS246", "CS245", "ECE124"]
 
 import course_info
@@ -15,6 +15,8 @@ from scheduler import Scheduler
 def block_compare(block1, block2):
     """
     Produces 0 if the blocks conflict, -1 if `block1` precedes `block2`, and 1 if `block1` follows `block2`.
+    
+    Blocks are 2-tuples where the first element is the start time of a section block as a `datetime`, and the second element is the block duration as a `timedelta`.
     """
     if block1[0] + block1[1] <= block2[0]: return -1 # `block1` is too early to conflict with `block2`
     if block1[0] >= block2[0] + block2[1]: return 1 # `block1` is too late to conflict with `block2`
@@ -22,11 +24,13 @@ def block_compare(block1, block2):
 
 def check_section_conflict(section1, section2): # $O(n)$ where $n$ is `max(len(section1), len(section2))`
     """
-    Produces True if the sections conflict, and False otherwise.
+    Produces True if `section1` conflicts with `section2`, and False otherwise.
+    
+    Sections are lists of blocks.
     """
     index1, index2 = 0, 0
     while index1 < len(section1) and index2 < len(section2):
-        status = block_compare(section1[index1], section1[index2])
+        status = block_compare(section1[index1], section2[index2])
         if status == -1: index1 += 1
         elif status == 1: index2 += 1
         else: # found conflicting block
@@ -78,8 +82,7 @@ for constraint in scheduler.get_constraints():
 schedules = list(scheduler.solve())
 
 possibility_space = 1
-for sections in requirements.values():
-    possibility_space *= len(sections)
+for sections in requirements.values(): possibility_space *= len(sections)
 print(len(schedules), " valid schedules out of ", possibility_space, " possibilities")
 
 print("first 30 schedules:")
