@@ -34,7 +34,7 @@ class Scheduler:
         
         Solves the constraints using a SAT solving algorithm and processes the results.
         """
-        return ({self.index_mapping[y] for y in x if y > 0} for x in pycosat.itersolve(self.constraints))
+        return ([self.index_mapping[y] for y in x if y > 0] for x in pycosat.itersolve(self.constraints))
 
     def register_variable(self, name):
         if name in self.name_mapping: return self.name_mapping[name]

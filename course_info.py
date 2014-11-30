@@ -13,6 +13,7 @@ def parse_date(value, default_date):
     return datetime(components[0], components[1], components[2]) # year, month, and day specified
 
 def get_class_times(description, default_start_date, default_end_date):
+    #wip: do something with "is_closed" and "enrollment_capacity" and "enrollment_total", like an option to use even closed classes
     if description["start_time"] is None or description["end_time"] is None: # no specified time
         return []
     
@@ -46,8 +47,10 @@ def get_class_times(description, default_start_date, default_end_date):
     return result
 
 def get_courses_data(term, course_list):
+    assert isinstance(term, int)
     result = {}
     for course in course_list:
+        assert isinstance(course, str)
         subject, catalog_number = re.match("([a-zA-Z]+)\s*(\d+)", course).groups()
         result[course] = uwapi("terms/{0}/{1}/{2}/schedule".format(term, subject, catalog_number))
     return result
@@ -62,10 +65,9 @@ def get_courses_sections(courses_data, default_start_date, default_end_date):
             result[(course_name, section["section"])] = sorted(times, key=lambda x: x[0])
     return result
 
-def get_course_entries(courses_data, course_list):
-    courses = set(course_list)
+def get_section_entries(courses_data, section_list):
     result = {}
-    for course_name, section_name in courses:
+    for course_name, section_name in section_list:
         for section in courses_data[course_name]:
             if section["section"] == section_name:
                 result[(course_name, section_name)] = section

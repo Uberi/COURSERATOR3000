@@ -3,12 +3,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-term = 1151 # winter 2015
-term_start, term_end = datetime(2015, 1, 5), datetime(2015, 5, 1)
-#term_start, term_end = datetime(2015, 1, 5), datetime(2015, 1, 9) #wip: debug
-courses = ["CS240", "CS241", "ECE124", "ECON201", "SCI267"]
-
-import course_info
 from scheduler import Scheduler
 import conflict_checker
 
@@ -64,8 +58,6 @@ def get_schedule_json(course_sections, schedule, start, end):
 
     A section is a 2-tuple containing the course name and section name, both strings.
     """
-    import json
-
     end = end + timedelta(days=1) # add one day to represent the end of that day
     result = []
     for section in schedule:
@@ -78,22 +70,4 @@ def get_schedule_json(course_sections, schedule, start, end):
                     "section": section[1],
                 })
     result = sorted(result, key=lambda x: x["start"])
-    return json.dumps(result)
-
-# obtain a dictionary mapping course names to dictionaries mapping section names to lists of time blocks
-#courses_data = course_info.get_courses_data(term, courses)
-from test_data import courses_data
-course_sections = course_info.get_courses_sections(courses_data, term_start, term_end)
-
-schedules = compute_schedules(course_sections)
-
-#print(course_info.get_course_entries(courses_data, schedules[0]))
-
-result = get_schedule_json(course_sections, schedules[0], datetime(2015, 1, 12), datetime(2015, 1, 16))
-
-print(result)
-
-import sys; sys.exit()
-
-for schedule in schedules:
-    print(schedule)
+    return result
