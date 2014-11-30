@@ -28,7 +28,7 @@ def get_class_times(description, default_start_date, default_end_date):
     weekly_classes = []
     for day in re.findall(r"Th|Su|M|T|W|F|S", description["weekdays"]):
         current_day = timedelta(days=weekdays[day])
-        weekly_classes.append((current_day + daily_start, daily_end - daily_start))
+        weekly_classes.append((current_day + daily_start, current_day + daily_end))
     
     # parse start/end dates
     start = parse_date(description["start_date"], default_start_date) if description["start_date"] is not None else default_start_date
@@ -39,10 +39,10 @@ def get_class_times(description, default_start_date, default_end_date):
     result = []
     current_date = start - timedelta(days=start.weekday()) # beginning of the week containing the start date
     while current_date < end:
-        for class_offset, duration in weekly_classes:
-            class_start = current_date + class_offset
-            if class_start >= start and class_start + duration < end:
-                result.append((class_start, duration))
+        for class_start_offset, class_end_offset in weekly_classes:
+            class_start, class_end = current_date + class_start_offset, current_date + class_end_offset
+            if class_start >= start and class_end < end:
+                result.append((class_start, class_end))
         current_date = current_date + timedelta(weeks=1)
     return result
 

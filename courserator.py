@@ -13,10 +13,9 @@ app = Flask(__name__)
 
 terms = {
     "2014S": (1145, datetime(2014, 5, 5), datetime(2014, 8, 16)),
-    "2014F": (1149, datetime(2014, 5, 5), datetime(2014, 8, 16)),
-    "2015W": (1151, datetime(2014, 9, 4), datetime(2015, 12, 19)),
-    "2015S": (1155, datetime(2015, 1, 5), datetime(2015, 4, 25)),
-    "2015F": (1159, datetime(2015, 5, 4), datetime(2015, 8, 15)),
+    "2014F": (1149, datetime(2014, 9, 4), datetime(2014, 12, 19)),
+    "2015W": (1151, datetime(2015, 1, 5), datetime(2015, 4, 25)),
+    "2015S": (1155, datetime(2015, 5, 4), datetime(2015, 8, 15)),
 }
 
 class Schedule:
@@ -53,19 +52,18 @@ def new_schedule():
 
     value = request.get_json(force=True)
     assert value["term"] in terms # validate term
-    term = terms[value["term"]]
 
     key = str(uuid.uuid4()) # create a unique key
-    datastore[key] = Schedule(key, term)
+    datastore[key] = Schedule(key, value["term"])
     return jsonify(id=key, url="/schedules/" + key)
 
 @app.route("/schedules/<schedule:schedule>/term")
-def get_term(schedule): return jsonify(term=next(x for x, term in terms if term == schedule.term))
+def get_term(schedule): return jsonify(term=schedule.term)
 @app.route("/schedules/<schedule:schedule>/term", methods=["PUT"])
 def update_term(schedule):
     value = request.get_json(force=True)
     assert value["term"] in terms # validate term
-    schedule.term = terms[value["term"]]
+    schedule.term = value["term"]
     datastore[schedule.key] = schedule; datastore.sync() # update schedule in datastore
     return jsonify(term=value["term"]) # return the new courses
 
@@ -88,9 +86,11 @@ def remove_courses(schedule, courses):
 
 @app.route("/schedules/<schedule:schedule>")
 def get_schedules(schedule):
-    courses_data = course_info.get_courses_data(schedule.term[0], schedule.courses)
+    term_info = terms[schedule.term]
+    courses_data = course_info.get_courses_data(term_info[0], schedule.courses)
+
     #from test_data import courses_data
-    course_sections = course_info.get_courses_sections(courses_data, schedule.term[1], schedule.term[2])
+    course_sections = course_info.get_courses_sections(courses_data, term_info[1], term_info[2])
 
     schedules = solver.compute_schedules(course_sections)
 
@@ -104,6 +104,7 @@ def get_schedules(schedule):
             instructors.update(class_entry["instructors"])
         json_sections_info[section[0] + "|" + section[1]] = {
             "name": section_entry["subject"] + section_entry["catalog_number"],
+            "section": section_entry["section"],
             "instructors": list(instructors),
             "currently_enrolled": section_entry["enrollment_total"],
             "max_enrolled": section_entry["enrollment_capacity"],
@@ -111,6 +112,7 @@ def get_schedules(schedule):
             "campus": section_entry["campus"],
             "note": section_entry["note"],
             "class_number": section_entry["class_number"],
+            "blocks": course_sections[section],
         }
 
     json_schedules = [[section[0] + "|" + section[1] for section in schedule] for schedule in schedules]
