@@ -167,4 +167,5 @@ if __name__ == "__main__":
         ('CS240', 'TUT 103'): [(datetime.datetime(2015, 1, 5, 15, 30), datetime.datetime(2015, 1, 5, 16, 20))],
         ('ECON201', 'LEC 001'): [(datetime.datetime(2015, 1, 6, 13, 0), datetime.datetime(2015, 1, 6, 14, 20)), (datetime.datetime(2015, 1, 8, 13, 0), datetime.datetime(2015, 1, 8, 14, 20))]
     }
+    print("Conflicts:")
     print(list(get_conflicts(requirements, course_sections)))

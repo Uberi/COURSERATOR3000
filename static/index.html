@@ -1,0 +1,3225 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>COURSERATOR 3000</title>
+	
+	<link rel="stylesheet" href="lib/fullcalendar/fullcalendar.css" />
+	<script src="lib/jquery.min.js"></script>
+	<script src="lib/moment.min.js"></script>
+	<script src="lib/fullcalendar/fullcalendar.js"></script>
+	
+	<link rel="stylesheet" href="lib/datatables/css/jquery.dataTables.min.css" />
+	<script src="lib/datatables/js/jquery.dataTables.min.js"></script>
+	
+	<style>
+	body {
+		font-family: monospace;
+		width: 80%;
+		margin: 5em auto;
+		text-align: center;
+	}
+	
+	.separator {
+		font-size: 10em;
+		text-align: center;
+	}
+	
+	#courses {
+		margin: 2em;
+		border-bottom: 1px dashed black;
+		position: relative;
+	}
+	
+	#courses > * { font-size: 2em; }
+	
+	#courses input[type=text] {
+		border: none;
+		outline: none;
+		width: 100%;
+	}
+	
+	#courses input[type=submit] {
+		position: absolute;
+		right: 0; top: 0;
+		background: transparent;
+		border: none;
+		text-shadow: 0 0 0.05em black;
+		transition: text-shadow 0.2s ease;
+	}
+	
+	#courses input[type=submit]:hover {
+		text-shadow: 0 0 0.3em black;
+		float: right;
+	}
+	
+	.classBlock {
+		padding: 0.2em;
+		background-color: red;
+		color: black;
+	}
+	</style>
+</head>
+<body>
+	<form id="courses">
+		<input type="text" name="courses" autofocus="autofocus"><input type="submit" value=">">
+	</form>
+	<div class="separator">&#9660;</div>
+	<table id="scheduleList" class="display">
+		<thead>
+			<tr>
+				<th>A</th>
+				<th>B</th>
+				<th>C</th>
+				<th>D</th>
+				<th>E</th>
+				<th>F</th>
+				<th>G</th>
+				<th>H</th>
+				<th>I</th>
+				<th>J</th>
+				<th>K</th>
+			</tr>
+		</thead>
+		<tbody></tbody>
+	</table>
+	<div class="separator">&#9660;</div>
+	<div id="calendar"></div>
+	<script>
+	function goToEarliest(sections, schedule) { // to the the first day of the given schedule
+		// go to first day in schedule
+		var earliest = moment(sections[schedule[0]].blocks[0][0]);
+		for (var i = 0; i < schedule.length; i ++) { // add new events
+			var blocks = sections[schedule[i]].blocks;
+			for (var j = 0; j < blocks.length; j ++) {
+				var block = blocks[j];
+				if (earliest.isAfter(block[0])) earliest = moment(block[0]);
+			}
+		}
+		$("#calendar").fullCalendar("gotoDate", earliest);
+	}
+	
+	function getEvents(sections, schedule, start, end) { // obtain the events in the given schedule in the given interval
+		console.log(schedule);
+		var events = [];
+		for (var i = 0; i < schedule.length; i ++) { // add new events
+			var section = sections[schedule[i]];
+			for (var j = 0; j < section.blocks.length; j ++) {
+				var block = section.blocks[j];
+				var blockStart = moment.utc(block[0]); blockEnd = moment.utc(block[1]); // parse times without time zone offsets
+				if (start.isBefore(block[1]) && end.isAfter(block[0])) {
+					events.push({
+						title: section.name + " " + section.section,
+						start: block[0], end: block[1], allDay: false,
+						className: "classBlock",
+					});
+				}
+			}
+		}
+		return events;
+	}
+	
+	var currentSource = null;
+	function showSchedule(sections, schedule) {
+		var calendar = $("#calendar");
+		
+		if (currentSource !== null) calendar.fullCalendar("removeEventSource", currentSource);
+		currentSource = { events: function(start, end, timezone, callback) { return callback(getEvents(sections, schedule, moment(start), moment(end))); } };
+		calendar.fullCalendar("addEventSource", currentSource);
+	}
+	
+	$(document).ready(function() {
+		var scheduleList = $("#scheduleList");
+		var table = scheduleList.DataTable({
+			data: data.schedules,
+			/*columns: [
+				{ data: "name" },
+				{ data: "position" },
+				{ data: "salary" },
+				{ data: "office" }
+			],*/
+			paging: false,
+			scrollY: 400,
+		});
+		scheduleList.find("tbody").on("click", "tr", function () {
+			scheduleList.find("tr.selected").removeClass("selected"); // deselect all other rows
+			$(this).addClass("selected"); // select this row
+			showSchedule(data.sections, table.row(".selected").data());
+		});
+		
+		var schedule = data.schedules[0];
+		$("#calendar").fullCalendar({
+			defaultView: "agendaWeek", // start with a weekly agenda
+			firstDay: 1, // weeks start on Monday
+			height: "auto",
+			businessHours: { // emphasize business hours
+				start: "8:00", end: "22:00",
+				dow: [1, 2, 3, 4, 5], // business days
+			},
+			minTime: "8:00", maxTime: "22:00",
+		});
+		showSchedule(data.sections, schedule);
+		goToEarliest(data.sections, schedule)
+	});
+	
+	var data = {
+		"schedules": [
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 103",
+				"ECE124|TUT 101"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 103",
+				"ECE124|TUT 103"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 101",
+				"ECE124|TUT 103"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 101",
+				"ECE124|TUT 101"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 105",
+				"ECE124|TUT 101"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 105",
+				"ECE124|TUT 103"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 102",
+				"ECE124|TUT 103"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 102",
+				"ECE124|TUT 101"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 101"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 103"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 103"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 101"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 103",
+				"ECE124|TUT 101"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 103",
+				"ECE124|TUT 103"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 101",
+				"ECE124|TUT 103"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 101",
+				"ECE124|TUT 101"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 105",
+				"ECE124|TUT 101"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 105",
+				"ECE124|TUT 103"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 102",
+				"ECE124|TUT 103"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 102",
+				"ECE124|TUT 101"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 102",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 102",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 103",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 103",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 101",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 101",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 105",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 105",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 103",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 103",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 101",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 101",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 105",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 105",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 102",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 102",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 102",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 102",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 103",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 103",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 101",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 101",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 105",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 105",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 103",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 103",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 101",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 101",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 105",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 105",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 102",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 206",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 102",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 205",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 101"
+			],
+			[
+				"ECE124|LAB 205",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 101"
+			],
+			[
+				"ECE124|LAB 205",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 205",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 205",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 103"
+			],
+			[
+				"ECE124|LAB 205",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 002",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 103"
+			],
+			[
+				"ECE124|LAB 205",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 205",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 003",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 205",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 205",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 106"
+			],
+			[
+				"ECE124|LAB 205",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 002",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 102"
+			],
+			[
+				"ECE124|LAB 205",
+				"CS241|TUT 103",
+				"CS241|TST 201",
+				"SCI267|LEC 001",
+				"ECE124|LEC 002",
+				"ECON201|LEC 001",
+				"CS241|LEC 001",
+				"CS240|LEC 003",
+				"CS240|TST 201",
+				"CS240|TUT 104",
+				"ECE124|TUT 102"
+			]
+		],
+		"sections": {
+			"CS240|LEC 002": {
+				"blocks": [
+					[
+						"2015-01-06T11:30:00",
+						"2015-01-06T12:50:00"
+					],
+					[
+						"2015-01-08T11:30:00",
+						"2015-01-08T12:50:00"
+					],
+					[
+						"2015-01-13T11:30:00",
+						"2015-01-13T12:50:00"
+					],
+					[
+						"2015-01-15T11:30:00",
+						"2015-01-15T12:50:00"
+					],
+					[
+						"2015-01-20T11:30:00",
+						"2015-01-20T12:50:00"
+					],
+					[
+						"2015-01-22T11:30:00",
+						"2015-01-22T12:50:00"
+					],
+					[
+						"2015-01-27T11:30:00",
+						"2015-01-27T12:50:00"
+					],
+					[
+						"2015-01-29T11:30:00",
+						"2015-01-29T12:50:00"
+					],
+					[
+						"2015-02-03T11:30:00",
+						"2015-02-03T12:50:00"
+					],
+					[
+						"2015-02-05T11:30:00",
+						"2015-02-05T12:50:00"
+					],
+					[
+						"2015-02-10T11:30:00",
+						"2015-02-10T12:50:00"
+					],
+					[
+						"2015-02-12T11:30:00",
+						"2015-02-12T12:50:00"
+					],
+					[
+						"2015-02-17T11:30:00",
+						"2015-02-17T12:50:00"
+					],
+					[
+						"2015-02-19T11:30:00",
+						"2015-02-19T12:50:00"
+					],
+					[
+						"2015-02-24T11:30:00",
+						"2015-02-24T12:50:00"
+					],
+					[
+						"2015-02-26T11:30:00",
+						"2015-02-26T12:50:00"
+					],
+					[
+						"2015-03-03T11:30:00",
+						"2015-03-03T12:50:00"
+					],
+					[
+						"2015-03-05T11:30:00",
+						"2015-03-05T12:50:00"
+					],
+					[
+						"2015-03-10T11:30:00",
+						"2015-03-10T12:50:00"
+					],
+					[
+						"2015-03-12T11:30:00",
+						"2015-03-12T12:50:00"
+					],
+					[
+						"2015-03-17T11:30:00",
+						"2015-03-17T12:50:00"
+					],
+					[
+						"2015-03-19T11:30:00",
+						"2015-03-19T12:50:00"
+					],
+					[
+						"2015-03-24T11:30:00",
+						"2015-03-24T12:50:00"
+					],
+					[
+						"2015-03-26T11:30:00",
+						"2015-03-26T12:50:00"
+					],
+					[
+						"2015-03-31T11:30:00",
+						"2015-03-31T12:50:00"
+					],
+					[
+						"2015-04-02T11:30:00",
+						"2015-04-02T12:50:00"
+					],
+					[
+						"2015-04-07T11:30:00",
+						"2015-04-07T12:50:00"
+					],
+					[
+						"2015-04-09T11:30:00",
+						"2015-04-09T12:50:00"
+					],
+					[
+						"2015-04-14T11:30:00",
+						"2015-04-14T12:50:00"
+					],
+					[
+						"2015-04-16T11:30:00",
+						"2015-04-16T12:50:00"
+					],
+					[
+						"2015-04-21T11:30:00",
+						"2015-04-21T12:50:00"
+					],
+					[
+						"2015-04-23T11:30:00",
+						"2015-04-23T12:50:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 6055,
+				"currently_enrolled": 99,
+				"instructors": [
+					"Biedl,Therese"
+				],
+				"max_enrolled": 94,
+				"name": "CS240",
+				"note": "Choose TUT for Related 1. LEC 003 is auto-enrolled.",
+				"section": "LEC 002",
+				"title": "Data Structures and Data Management"
+			},
+			"CS240|LEC 003": {
+				"blocks": [
+					[
+						"2015-01-06T11:30:00",
+						"2015-01-06T12:50:00"
+					],
+					[
+						"2015-01-08T11:30:00",
+						"2015-01-08T12:50:00"
+					],
+					[
+						"2015-01-13T11:30:00",
+						"2015-01-13T12:50:00"
+					],
+					[
+						"2015-01-15T11:30:00",
+						"2015-01-15T12:50:00"
+					],
+					[
+						"2015-01-20T11:30:00",
+						"2015-01-20T12:50:00"
+					],
+					[
+						"2015-01-22T11:30:00",
+						"2015-01-22T12:50:00"
+					],
+					[
+						"2015-01-27T11:30:00",
+						"2015-01-27T12:50:00"
+					],
+					[
+						"2015-01-29T11:30:00",
+						"2015-01-29T12:50:00"
+					],
+					[
+						"2015-02-03T11:30:00",
+						"2015-02-03T12:50:00"
+					],
+					[
+						"2015-02-05T11:30:00",
+						"2015-02-05T12:50:00"
+					],
+					[
+						"2015-02-10T11:30:00",
+						"2015-02-10T12:50:00"
+					],
+					[
+						"2015-02-12T11:30:00",
+						"2015-02-12T12:50:00"
+					],
+					[
+						"2015-02-17T11:30:00",
+						"2015-02-17T12:50:00"
+					],
+					[
+						"2015-02-19T11:30:00",
+						"2015-02-19T12:50:00"
+					],
+					[
+						"2015-02-24T11:30:00",
+						"2015-02-24T12:50:00"
+					],
+					[
+						"2015-02-26T11:30:00",
+						"2015-02-26T12:50:00"
+					],
+					[
+						"2015-03-03T11:30:00",
+						"2015-03-03T12:50:00"
+					],
+					[
+						"2015-03-05T11:30:00",
+						"2015-03-05T12:50:00"
+					],
+					[
+						"2015-03-10T11:30:00",
+						"2015-03-10T12:50:00"
+					],
+					[
+						"2015-03-12T11:30:00",
+						"2015-03-12T12:50:00"
+					],
+					[
+						"2015-03-17T11:30:00",
+						"2015-03-17T12:50:00"
+					],
+					[
+						"2015-03-19T11:30:00",
+						"2015-03-19T12:50:00"
+					],
+					[
+						"2015-03-24T11:30:00",
+						"2015-03-24T12:50:00"
+					],
+					[
+						"2015-03-26T11:30:00",
+						"2015-03-26T12:50:00"
+					],
+					[
+						"2015-03-31T11:30:00",
+						"2015-03-31T12:50:00"
+					],
+					[
+						"2015-04-02T11:30:00",
+						"2015-04-02T12:50:00"
+					],
+					[
+						"2015-04-07T11:30:00",
+						"2015-04-07T12:50:00"
+					],
+					[
+						"2015-04-09T11:30:00",
+						"2015-04-09T12:50:00"
+					],
+					[
+						"2015-04-14T11:30:00",
+						"2015-04-14T12:50:00"
+					],
+					[
+						"2015-04-16T11:30:00",
+						"2015-04-16T12:50:00"
+					],
+					[
+						"2015-04-21T11:30:00",
+						"2015-04-21T12:50:00"
+					],
+					[
+						"2015-04-23T11:30:00",
+						"2015-04-23T12:50:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 6242,
+				"currently_enrolled": 35,
+				"instructors": [
+					"Lopez-Ortiz,Alejandro"
+				],
+				"max_enrolled": 34,
+				"name": "CS240",
+				"note": "Choose TUT for Related 1. LEC 003 is auto-enrolled.",
+				"section": "LEC 003",
+				"title": "Data Structures and Data Management"
+			},
+			"CS240|TST 201": {
+				"blocks": [
+					[
+						"2015-02-26T16:30:00",
+						"2015-02-26T18:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 5861,
+				"currently_enrolled": 228,
+				"instructors": [],
+				"max_enrolled": 260,
+				"name": "CS240",
+				"note": "Choose TUT for Related 1. LEC 003 is auto-enrolled.",
+				"section": "TST 201",
+				"title": "Data Structures and Data Management"
+			},
+			"CS240|TUT 101": {
+				"blocks": [
+					[
+						"2015-01-05T13:30:00",
+						"2015-01-05T14:20:00"
+					],
+					[
+						"2015-01-12T13:30:00",
+						"2015-01-12T14:20:00"
+					],
+					[
+						"2015-01-19T13:30:00",
+						"2015-01-19T14:20:00"
+					],
+					[
+						"2015-01-26T13:30:00",
+						"2015-01-26T14:20:00"
+					],
+					[
+						"2015-02-02T13:30:00",
+						"2015-02-02T14:20:00"
+					],
+					[
+						"2015-02-09T13:30:00",
+						"2015-02-09T14:20:00"
+					],
+					[
+						"2015-02-16T13:30:00",
+						"2015-02-16T14:20:00"
+					],
+					[
+						"2015-02-23T13:30:00",
+						"2015-02-23T14:20:00"
+					],
+					[
+						"2015-03-02T13:30:00",
+						"2015-03-02T14:20:00"
+					],
+					[
+						"2015-03-09T13:30:00",
+						"2015-03-09T14:20:00"
+					],
+					[
+						"2015-03-16T13:30:00",
+						"2015-03-16T14:20:00"
+					],
+					[
+						"2015-03-23T13:30:00",
+						"2015-03-23T14:20:00"
+					],
+					[
+						"2015-03-30T13:30:00",
+						"2015-03-30T14:20:00"
+					],
+					[
+						"2015-04-06T13:30:00",
+						"2015-04-06T14:20:00"
+					],
+					[
+						"2015-04-13T13:30:00",
+						"2015-04-13T14:20:00"
+					],
+					[
+						"2015-04-20T13:30:00",
+						"2015-04-20T14:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 6191,
+				"currently_enrolled": 56,
+				"instructors": [],
+				"max_enrolled": 55,
+				"name": "CS240",
+				"note": "Choose TUT for Related 1. LEC 003 is auto-enrolled.",
+				"section": "TUT 101",
+				"title": "Data Structures and Data Management"
+			},
+			"CS240|TUT 102": {
+				"blocks": [
+					[
+						"2015-01-05T14:30:00",
+						"2015-01-05T15:20:00"
+					],
+					[
+						"2015-01-12T14:30:00",
+						"2015-01-12T15:20:00"
+					],
+					[
+						"2015-01-19T14:30:00",
+						"2015-01-19T15:20:00"
+					],
+					[
+						"2015-01-26T14:30:00",
+						"2015-01-26T15:20:00"
+					],
+					[
+						"2015-02-02T14:30:00",
+						"2015-02-02T15:20:00"
+					],
+					[
+						"2015-02-09T14:30:00",
+						"2015-02-09T15:20:00"
+					],
+					[
+						"2015-02-16T14:30:00",
+						"2015-02-16T15:20:00"
+					],
+					[
+						"2015-02-23T14:30:00",
+						"2015-02-23T15:20:00"
+					],
+					[
+						"2015-03-02T14:30:00",
+						"2015-03-02T15:20:00"
+					],
+					[
+						"2015-03-09T14:30:00",
+						"2015-03-09T15:20:00"
+					],
+					[
+						"2015-03-16T14:30:00",
+						"2015-03-16T15:20:00"
+					],
+					[
+						"2015-03-23T14:30:00",
+						"2015-03-23T15:20:00"
+					],
+					[
+						"2015-03-30T14:30:00",
+						"2015-03-30T15:20:00"
+					],
+					[
+						"2015-04-06T14:30:00",
+						"2015-04-06T15:20:00"
+					],
+					[
+						"2015-04-13T14:30:00",
+						"2015-04-13T15:20:00"
+					],
+					[
+						"2015-04-20T14:30:00",
+						"2015-04-20T15:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 6192,
+				"currently_enrolled": 53,
+				"instructors": [],
+				"max_enrolled": 55,
+				"name": "CS240",
+				"note": "Choose TUT for Related 1. LEC 003 is auto-enrolled.",
+				"section": "TUT 102",
+				"title": "Data Structures and Data Management"
+			},
+			"CS240|TUT 103": {
+				"blocks": [
+					[
+						"2015-01-05T15:30:00",
+						"2015-01-05T16:20:00"
+					],
+					[
+						"2015-01-12T15:30:00",
+						"2015-01-12T16:20:00"
+					],
+					[
+						"2015-01-19T15:30:00",
+						"2015-01-19T16:20:00"
+					],
+					[
+						"2015-01-26T15:30:00",
+						"2015-01-26T16:20:00"
+					],
+					[
+						"2015-02-02T15:30:00",
+						"2015-02-02T16:20:00"
+					],
+					[
+						"2015-02-09T15:30:00",
+						"2015-02-09T16:20:00"
+					],
+					[
+						"2015-02-16T15:30:00",
+						"2015-02-16T16:20:00"
+					],
+					[
+						"2015-02-23T15:30:00",
+						"2015-02-23T16:20:00"
+					],
+					[
+						"2015-03-02T15:30:00",
+						"2015-03-02T16:20:00"
+					],
+					[
+						"2015-03-09T15:30:00",
+						"2015-03-09T16:20:00"
+					],
+					[
+						"2015-03-16T15:30:00",
+						"2015-03-16T16:20:00"
+					],
+					[
+						"2015-03-23T15:30:00",
+						"2015-03-23T16:20:00"
+					],
+					[
+						"2015-03-30T15:30:00",
+						"2015-03-30T16:20:00"
+					],
+					[
+						"2015-04-06T15:30:00",
+						"2015-04-06T16:20:00"
+					],
+					[
+						"2015-04-13T15:30:00",
+						"2015-04-13T16:20:00"
+					],
+					[
+						"2015-04-20T15:30:00",
+						"2015-04-20T16:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 6193,
+				"currently_enrolled": 42,
+				"instructors": [],
+				"max_enrolled": 55,
+				"name": "CS240",
+				"note": "Choose TUT for Related 1. LEC 003 is auto-enrolled.",
+				"section": "TUT 103",
+				"title": "Data Structures and Data Management"
+			},
+			"CS240|TUT 104": {
+				"blocks": [
+					[
+						"2015-01-05T16:30:00",
+						"2015-01-05T17:20:00"
+					],
+					[
+						"2015-01-12T16:30:00",
+						"2015-01-12T17:20:00"
+					],
+					[
+						"2015-01-19T16:30:00",
+						"2015-01-19T17:20:00"
+					],
+					[
+						"2015-01-26T16:30:00",
+						"2015-01-26T17:20:00"
+					],
+					[
+						"2015-02-02T16:30:00",
+						"2015-02-02T17:20:00"
+					],
+					[
+						"2015-02-09T16:30:00",
+						"2015-02-09T17:20:00"
+					],
+					[
+						"2015-02-16T16:30:00",
+						"2015-02-16T17:20:00"
+					],
+					[
+						"2015-02-23T16:30:00",
+						"2015-02-23T17:20:00"
+					],
+					[
+						"2015-03-02T16:30:00",
+						"2015-03-02T17:20:00"
+					],
+					[
+						"2015-03-09T16:30:00",
+						"2015-03-09T17:20:00"
+					],
+					[
+						"2015-03-16T16:30:00",
+						"2015-03-16T17:20:00"
+					],
+					[
+						"2015-03-23T16:30:00",
+						"2015-03-23T17:20:00"
+					],
+					[
+						"2015-03-30T16:30:00",
+						"2015-03-30T17:20:00"
+					],
+					[
+						"2015-04-06T16:30:00",
+						"2015-04-06T17:20:00"
+					],
+					[
+						"2015-04-13T16:30:00",
+						"2015-04-13T17:20:00"
+					],
+					[
+						"2015-04-20T16:30:00",
+						"2015-04-20T17:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 6194,
+				"currently_enrolled": 42,
+				"instructors": [],
+				"max_enrolled": 55,
+				"name": "CS240",
+				"note": "Choose TUT for Related 1. LEC 003 is auto-enrolled.",
+				"section": "TUT 104",
+				"title": "Data Structures and Data Management"
+			},
+			"CS240|TUT 105": {
+				"blocks": [
+					[
+						"2015-01-05T15:30:00",
+						"2015-01-05T16:20:00"
+					],
+					[
+						"2015-01-12T15:30:00",
+						"2015-01-12T16:20:00"
+					],
+					[
+						"2015-01-19T15:30:00",
+						"2015-01-19T16:20:00"
+					],
+					[
+						"2015-01-26T15:30:00",
+						"2015-01-26T16:20:00"
+					],
+					[
+						"2015-02-02T15:30:00",
+						"2015-02-02T16:20:00"
+					],
+					[
+						"2015-02-09T15:30:00",
+						"2015-02-09T16:20:00"
+					],
+					[
+						"2015-02-16T15:30:00",
+						"2015-02-16T16:20:00"
+					],
+					[
+						"2015-02-23T15:30:00",
+						"2015-02-23T16:20:00"
+					],
+					[
+						"2015-03-02T15:30:00",
+						"2015-03-02T16:20:00"
+					],
+					[
+						"2015-03-09T15:30:00",
+						"2015-03-09T16:20:00"
+					],
+					[
+						"2015-03-16T15:30:00",
+						"2015-03-16T16:20:00"
+					],
+					[
+						"2015-03-23T15:30:00",
+						"2015-03-23T16:20:00"
+					],
+					[
+						"2015-03-30T15:30:00",
+						"2015-03-30T16:20:00"
+					],
+					[
+						"2015-04-06T15:30:00",
+						"2015-04-06T16:20:00"
+					],
+					[
+						"2015-04-13T15:30:00",
+						"2015-04-13T16:20:00"
+					],
+					[
+						"2015-04-20T15:30:00",
+						"2015-04-20T16:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 7713,
+				"currently_enrolled": 35,
+				"instructors": [],
+				"max_enrolled": 40,
+				"name": "CS240",
+				"note": "Choose TUT for Related 1. LEC 003 is auto-enrolled.",
+				"section": "TUT 105",
+				"title": "Data Structures and Data Management"
+			},
+			"CS241|LEC 001": {
+				"blocks": [
+					[
+						"2015-01-06T10:00:00",
+						"2015-01-06T11:20:00"
+					],
+					[
+						"2015-01-08T10:00:00",
+						"2015-01-08T11:20:00"
+					],
+					[
+						"2015-01-13T10:00:00",
+						"2015-01-13T11:20:00"
+					],
+					[
+						"2015-01-15T10:00:00",
+						"2015-01-15T11:20:00"
+					],
+					[
+						"2015-01-20T10:00:00",
+						"2015-01-20T11:20:00"
+					],
+					[
+						"2015-01-22T10:00:00",
+						"2015-01-22T11:20:00"
+					],
+					[
+						"2015-01-27T10:00:00",
+						"2015-01-27T11:20:00"
+					],
+					[
+						"2015-01-29T10:00:00",
+						"2015-01-29T11:20:00"
+					],
+					[
+						"2015-02-03T10:00:00",
+						"2015-02-03T11:20:00"
+					],
+					[
+						"2015-02-05T10:00:00",
+						"2015-02-05T11:20:00"
+					],
+					[
+						"2015-02-10T10:00:00",
+						"2015-02-10T11:20:00"
+					],
+					[
+						"2015-02-12T10:00:00",
+						"2015-02-12T11:20:00"
+					],
+					[
+						"2015-02-17T10:00:00",
+						"2015-02-17T11:20:00"
+					],
+					[
+						"2015-02-19T10:00:00",
+						"2015-02-19T11:20:00"
+					],
+					[
+						"2015-02-24T10:00:00",
+						"2015-02-24T11:20:00"
+					],
+					[
+						"2015-02-26T10:00:00",
+						"2015-02-26T11:20:00"
+					],
+					[
+						"2015-03-03T10:00:00",
+						"2015-03-03T11:20:00"
+					],
+					[
+						"2015-03-05T10:00:00",
+						"2015-03-05T11:20:00"
+					],
+					[
+						"2015-03-10T10:00:00",
+						"2015-03-10T11:20:00"
+					],
+					[
+						"2015-03-12T10:00:00",
+						"2015-03-12T11:20:00"
+					],
+					[
+						"2015-03-17T10:00:00",
+						"2015-03-17T11:20:00"
+					],
+					[
+						"2015-03-19T10:00:00",
+						"2015-03-19T11:20:00"
+					],
+					[
+						"2015-03-24T10:00:00",
+						"2015-03-24T11:20:00"
+					],
+					[
+						"2015-03-26T10:00:00",
+						"2015-03-26T11:20:00"
+					],
+					[
+						"2015-03-31T10:00:00",
+						"2015-03-31T11:20:00"
+					],
+					[
+						"2015-04-02T10:00:00",
+						"2015-04-02T11:20:00"
+					],
+					[
+						"2015-04-07T10:00:00",
+						"2015-04-07T11:20:00"
+					],
+					[
+						"2015-04-09T10:00:00",
+						"2015-04-09T11:20:00"
+					],
+					[
+						"2015-04-14T10:00:00",
+						"2015-04-14T11:20:00"
+					],
+					[
+						"2015-04-16T10:00:00",
+						"2015-04-16T11:20:00"
+					],
+					[
+						"2015-04-21T10:00:00",
+						"2015-04-21T11:20:00"
+					],
+					[
+						"2015-04-23T10:00:00",
+						"2015-04-23T11:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 5765,
+				"currently_enrolled": 75,
+				"instructors": [
+					"Lushman,Bradley Michael"
+				],
+				"max_enrolled": 68,
+				"name": "CS241",
+				"note": "Choose TUT section for Related 1.",
+				"section": "LEC 001",
+				"title": "Foundations of Sequential Programs"
+			},
+			"CS241|LEC 002": {
+				"blocks": [
+					[
+						"2015-01-06T14:30:00",
+						"2015-01-06T15:50:00"
+					],
+					[
+						"2015-01-08T14:30:00",
+						"2015-01-08T15:50:00"
+					],
+					[
+						"2015-01-13T14:30:00",
+						"2015-01-13T15:50:00"
+					],
+					[
+						"2015-01-15T14:30:00",
+						"2015-01-15T15:50:00"
+					],
+					[
+						"2015-01-20T14:30:00",
+						"2015-01-20T15:50:00"
+					],
+					[
+						"2015-01-22T14:30:00",
+						"2015-01-22T15:50:00"
+					],
+					[
+						"2015-01-27T14:30:00",
+						"2015-01-27T15:50:00"
+					],
+					[
+						"2015-01-29T14:30:00",
+						"2015-01-29T15:50:00"
+					],
+					[
+						"2015-02-03T14:30:00",
+						"2015-02-03T15:50:00"
+					],
+					[
+						"2015-02-05T14:30:00",
+						"2015-02-05T15:50:00"
+					],
+					[
+						"2015-02-10T14:30:00",
+						"2015-02-10T15:50:00"
+					],
+					[
+						"2015-02-12T14:30:00",
+						"2015-02-12T15:50:00"
+					],
+					[
+						"2015-02-17T14:30:00",
+						"2015-02-17T15:50:00"
+					],
+					[
+						"2015-02-19T14:30:00",
+						"2015-02-19T15:50:00"
+					],
+					[
+						"2015-02-24T14:30:00",
+						"2015-02-24T15:50:00"
+					],
+					[
+						"2015-02-26T14:30:00",
+						"2015-02-26T15:50:00"
+					],
+					[
+						"2015-03-03T14:30:00",
+						"2015-03-03T15:50:00"
+					],
+					[
+						"2015-03-05T14:30:00",
+						"2015-03-05T15:50:00"
+					],
+					[
+						"2015-03-10T14:30:00",
+						"2015-03-10T15:50:00"
+					],
+					[
+						"2015-03-12T14:30:00",
+						"2015-03-12T15:50:00"
+					],
+					[
+						"2015-03-17T14:30:00",
+						"2015-03-17T15:50:00"
+					],
+					[
+						"2015-03-19T14:30:00",
+						"2015-03-19T15:50:00"
+					],
+					[
+						"2015-03-24T14:30:00",
+						"2015-03-24T15:50:00"
+					],
+					[
+						"2015-03-26T14:30:00",
+						"2015-03-26T15:50:00"
+					],
+					[
+						"2015-03-31T14:30:00",
+						"2015-03-31T15:50:00"
+					],
+					[
+						"2015-04-02T14:30:00",
+						"2015-04-02T15:50:00"
+					],
+					[
+						"2015-04-07T14:30:00",
+						"2015-04-07T15:50:00"
+					],
+					[
+						"2015-04-09T14:30:00",
+						"2015-04-09T15:50:00"
+					],
+					[
+						"2015-04-14T14:30:00",
+						"2015-04-14T15:50:00"
+					],
+					[
+						"2015-04-16T14:30:00",
+						"2015-04-16T15:50:00"
+					],
+					[
+						"2015-04-21T14:30:00",
+						"2015-04-21T15:50:00"
+					],
+					[
+						"2015-04-23T14:30:00",
+						"2015-04-23T15:50:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 5960,
+				"currently_enrolled": 71,
+				"instructors": [
+					"Lushman,Bradley Michael"
+				],
+				"max_enrolled": 68,
+				"name": "CS241",
+				"note": "Choose TUT section for Related 1.",
+				"section": "LEC 002",
+				"title": "Foundations of Sequential Programs"
+			},
+			"CS241|LEC 003": {
+				"blocks": [
+					[
+						"2015-01-06T10:00:00",
+						"2015-01-06T11:20:00"
+					],
+					[
+						"2015-01-08T10:00:00",
+						"2015-01-08T11:20:00"
+					],
+					[
+						"2015-01-13T10:00:00",
+						"2015-01-13T11:20:00"
+					],
+					[
+						"2015-01-15T10:00:00",
+						"2015-01-15T11:20:00"
+					],
+					[
+						"2015-01-20T10:00:00",
+						"2015-01-20T11:20:00"
+					],
+					[
+						"2015-01-22T10:00:00",
+						"2015-01-22T11:20:00"
+					],
+					[
+						"2015-01-27T10:00:00",
+						"2015-01-27T11:20:00"
+					],
+					[
+						"2015-01-29T10:00:00",
+						"2015-01-29T11:20:00"
+					],
+					[
+						"2015-02-03T10:00:00",
+						"2015-02-03T11:20:00"
+					],
+					[
+						"2015-02-05T10:00:00",
+						"2015-02-05T11:20:00"
+					],
+					[
+						"2015-02-10T10:00:00",
+						"2015-02-10T11:20:00"
+					],
+					[
+						"2015-02-12T10:00:00",
+						"2015-02-12T11:20:00"
+					],
+					[
+						"2015-02-17T10:00:00",
+						"2015-02-17T11:20:00"
+					],
+					[
+						"2015-02-19T10:00:00",
+						"2015-02-19T11:20:00"
+					],
+					[
+						"2015-02-24T10:00:00",
+						"2015-02-24T11:20:00"
+					],
+					[
+						"2015-02-26T10:00:00",
+						"2015-02-26T11:20:00"
+					],
+					[
+						"2015-03-03T10:00:00",
+						"2015-03-03T11:20:00"
+					],
+					[
+						"2015-03-05T10:00:00",
+						"2015-03-05T11:20:00"
+					],
+					[
+						"2015-03-10T10:00:00",
+						"2015-03-10T11:20:00"
+					],
+					[
+						"2015-03-12T10:00:00",
+						"2015-03-12T11:20:00"
+					],
+					[
+						"2015-03-17T10:00:00",
+						"2015-03-17T11:20:00"
+					],
+					[
+						"2015-03-19T10:00:00",
+						"2015-03-19T11:20:00"
+					],
+					[
+						"2015-03-24T10:00:00",
+						"2015-03-24T11:20:00"
+					],
+					[
+						"2015-03-26T10:00:00",
+						"2015-03-26T11:20:00"
+					],
+					[
+						"2015-03-31T10:00:00",
+						"2015-03-31T11:20:00"
+					],
+					[
+						"2015-04-02T10:00:00",
+						"2015-04-02T11:20:00"
+					],
+					[
+						"2015-04-07T10:00:00",
+						"2015-04-07T11:20:00"
+					],
+					[
+						"2015-04-09T10:00:00",
+						"2015-04-09T11:20:00"
+					],
+					[
+						"2015-04-14T10:00:00",
+						"2015-04-14T11:20:00"
+					],
+					[
+						"2015-04-16T10:00:00",
+						"2015-04-16T11:20:00"
+					],
+					[
+						"2015-04-21T10:00:00",
+						"2015-04-21T11:20:00"
+					],
+					[
+						"2015-04-23T10:00:00",
+						"2015-04-23T11:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 6243,
+				"currently_enrolled": 69,
+				"instructors": [],
+				"max_enrolled": 68,
+				"name": "CS241",
+				"note": "Choose TUT section for Related 1.",
+				"section": "LEC 003",
+				"title": "Foundations of Sequential Programs"
+			},
+			"CS241|TST 201": {
+				"blocks": [
+					[
+						"2015-03-03T16:30:00",
+						"2015-03-03T18:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 5862,
+				"currently_enrolled": 215,
+				"instructors": [],
+				"max_enrolled": 240,
+				"name": "CS241",
+				"note": "Choose TUT section for Related 1.",
+				"section": "TST 201",
+				"title": "Foundations of Sequential Programs"
+			},
+			"CS241|TUT 103": {
+				"blocks": [
+					[
+						"2015-01-09T14:30:00",
+						"2015-01-09T15:20:00"
+					],
+					[
+						"2015-01-16T14:30:00",
+						"2015-01-16T15:20:00"
+					],
+					[
+						"2015-01-23T14:30:00",
+						"2015-01-23T15:20:00"
+					],
+					[
+						"2015-01-30T14:30:00",
+						"2015-01-30T15:20:00"
+					],
+					[
+						"2015-02-06T14:30:00",
+						"2015-02-06T15:20:00"
+					],
+					[
+						"2015-02-13T14:30:00",
+						"2015-02-13T15:20:00"
+					],
+					[
+						"2015-02-20T14:30:00",
+						"2015-02-20T15:20:00"
+					],
+					[
+						"2015-02-27T14:30:00",
+						"2015-02-27T15:20:00"
+					],
+					[
+						"2015-03-06T14:30:00",
+						"2015-03-06T15:20:00"
+					],
+					[
+						"2015-03-13T14:30:00",
+						"2015-03-13T15:20:00"
+					],
+					[
+						"2015-03-20T14:30:00",
+						"2015-03-20T15:20:00"
+					],
+					[
+						"2015-03-27T14:30:00",
+						"2015-03-27T15:20:00"
+					],
+					[
+						"2015-04-03T14:30:00",
+						"2015-04-03T15:20:00"
+					],
+					[
+						"2015-04-10T14:30:00",
+						"2015-04-10T15:20:00"
+					],
+					[
+						"2015-04-17T14:30:00",
+						"2015-04-17T15:20:00"
+					],
+					[
+						"2015-04-24T14:30:00",
+						"2015-04-24T15:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 5961,
+				"currently_enrolled": 46,
+				"instructors": [],
+				"max_enrolled": 60,
+				"name": "CS241",
+				"note": "Choose TUT section for Related 1.",
+				"section": "TUT 103",
+				"title": "Foundations of Sequential Programs"
+			},
+			"ECE124|LAB 205": {
+				"blocks": [
+					[
+						"2015-01-12T13:30:00",
+						"2015-01-12T16:20:00"
+					],
+					[
+						"2015-01-26T13:30:00",
+						"2015-01-26T16:20:00"
+					],
+					[
+						"2015-02-09T13:30:00",
+						"2015-02-09T16:20:00"
+					],
+					[
+						"2015-03-02T13:30:00",
+						"2015-03-02T16:20:00"
+					],
+					[
+						"2015-03-16T13:30:00",
+						"2015-03-16T16:20:00"
+					],
+					[
+						"2015-03-30T13:30:00",
+						"2015-03-30T16:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 5039,
+				"currently_enrolled": 49,
+				"instructors": [
+					"Jlassi,Bahaedinne"
+				],
+				"max_enrolled": 52,
+				"name": "ECE124",
+				"note": "Choose TUT and LAB sections with same Associated Class number as primary meet.",
+				"section": "LAB 205",
+				"title": "Digital Circuits and Systems"
+			},
+			"ECE124|LAB 206": {
+				"blocks": [
+					[
+						"2015-01-14T13:30:00",
+						"2015-01-14T16:20:00"
+					],
+					[
+						"2015-01-28T13:30:00",
+						"2015-01-28T16:20:00"
+					],
+					[
+						"2015-02-11T13:30:00",
+						"2015-02-11T16:20:00"
+					],
+					[
+						"2015-03-04T13:30:00",
+						"2015-03-04T16:20:00"
+					],
+					[
+						"2015-03-18T13:30:00",
+						"2015-03-18T16:20:00"
+					],
+					[
+						"2015-04-01T13:30:00",
+						"2015-04-01T16:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 5040,
+				"currently_enrolled": 49,
+				"instructors": [
+					"Jlassi,Bahaedinne"
+				],
+				"max_enrolled": 51,
+				"name": "ECE124",
+				"note": "Choose TUT and LAB sections with same Associated Class number as primary meet.",
+				"section": "LAB 206",
+				"title": "Digital Circuits and Systems"
+			},
+			"ECE124|LEC 002": {
+				"blocks": [
+					[
+						"2015-01-05T09:30:00",
+						"2015-01-05T10:20:00"
+					],
+					[
+						"2015-01-07T09:30:00",
+						"2015-01-07T10:20:00"
+					],
+					[
+						"2015-01-09T09:30:00",
+						"2015-01-09T10:20:00"
+					],
+					[
+						"2015-01-12T09:30:00",
+						"2015-01-12T10:20:00"
+					],
+					[
+						"2015-01-13T08:30:00",
+						"2015-01-13T09:50:00"
+					],
+					[
+						"2015-01-14T09:30:00",
+						"2015-01-14T10:20:00"
+					],
+					[
+						"2015-01-16T09:30:00",
+						"2015-01-16T10:20:00"
+					],
+					[
+						"2015-01-19T09:30:00",
+						"2015-01-19T10:20:00"
+					],
+					[
+						"2015-01-21T09:30:00",
+						"2015-01-21T10:20:00"
+					],
+					[
+						"2015-01-23T09:30:00",
+						"2015-01-23T10:20:00"
+					],
+					[
+						"2015-01-26T09:30:00",
+						"2015-01-26T10:20:00"
+					],
+					[
+						"2015-01-27T08:30:00",
+						"2015-01-27T09:50:00"
+					],
+					[
+						"2015-01-28T09:30:00",
+						"2015-01-28T10:20:00"
+					],
+					[
+						"2015-01-30T09:30:00",
+						"2015-01-30T10:20:00"
+					],
+					[
+						"2015-02-02T09:30:00",
+						"2015-02-02T10:20:00"
+					],
+					[
+						"2015-02-04T09:30:00",
+						"2015-02-04T10:20:00"
+					],
+					[
+						"2015-02-06T09:30:00",
+						"2015-02-06T10:20:00"
+					],
+					[
+						"2015-02-09T09:30:00",
+						"2015-02-09T10:20:00"
+					],
+					[
+						"2015-02-10T08:30:00",
+						"2015-02-10T09:50:00"
+					],
+					[
+						"2015-02-11T09:30:00",
+						"2015-02-11T10:20:00"
+					],
+					[
+						"2015-02-13T09:30:00",
+						"2015-02-13T10:20:00"
+					],
+					[
+						"2015-02-16T09:30:00",
+						"2015-02-16T10:20:00"
+					],
+					[
+						"2015-02-18T09:30:00",
+						"2015-02-18T10:20:00"
+					],
+					[
+						"2015-02-20T09:30:00",
+						"2015-02-20T10:20:00"
+					],
+					[
+						"2015-02-23T09:30:00",
+						"2015-02-23T10:20:00"
+					],
+					[
+						"2015-02-25T09:30:00",
+						"2015-02-25T10:20:00"
+					],
+					[
+						"2015-02-27T09:30:00",
+						"2015-02-27T10:20:00"
+					],
+					[
+						"2015-03-02T09:30:00",
+						"2015-03-02T10:20:00"
+					],
+					[
+						"2015-03-04T09:30:00",
+						"2015-03-04T10:20:00"
+					],
+					[
+						"2015-03-06T09:30:00",
+						"2015-03-06T10:20:00"
+					],
+					[
+						"2015-03-09T09:30:00",
+						"2015-03-09T10:20:00"
+					],
+					[
+						"2015-03-10T08:30:00",
+						"2015-03-10T09:50:00"
+					],
+					[
+						"2015-03-11T09:30:00",
+						"2015-03-11T10:20:00"
+					],
+					[
+						"2015-03-13T09:30:00",
+						"2015-03-13T10:20:00"
+					],
+					[
+						"2015-03-16T09:30:00",
+						"2015-03-16T10:20:00"
+					],
+					[
+						"2015-03-18T09:30:00",
+						"2015-03-18T10:20:00"
+					],
+					[
+						"2015-03-20T09:30:00",
+						"2015-03-20T10:20:00"
+					],
+					[
+						"2015-03-23T09:30:00",
+						"2015-03-23T10:20:00"
+					],
+					[
+						"2015-03-24T08:30:00",
+						"2015-03-24T09:50:00"
+					],
+					[
+						"2015-03-25T09:30:00",
+						"2015-03-25T10:20:00"
+					],
+					[
+						"2015-03-27T09:30:00",
+						"2015-03-27T10:20:00"
+					],
+					[
+						"2015-03-30T09:30:00",
+						"2015-03-30T10:20:00"
+					],
+					[
+						"2015-04-01T09:30:00",
+						"2015-04-01T10:20:00"
+					],
+					[
+						"2015-04-03T09:30:00",
+						"2015-04-03T10:20:00"
+					],
+					[
+						"2015-04-06T09:30:00",
+						"2015-04-06T10:20:00"
+					],
+					[
+						"2015-04-08T09:30:00",
+						"2015-04-08T10:20:00"
+					],
+					[
+						"2015-04-10T09:30:00",
+						"2015-04-10T10:20:00"
+					],
+					[
+						"2015-04-13T09:30:00",
+						"2015-04-13T10:20:00"
+					],
+					[
+						"2015-04-15T09:30:00",
+						"2015-04-15T10:20:00"
+					],
+					[
+						"2015-04-17T09:30:00",
+						"2015-04-17T10:20:00"
+					],
+					[
+						"2015-04-20T09:30:00",
+						"2015-04-20T10:20:00"
+					],
+					[
+						"2015-04-22T09:30:00",
+						"2015-04-22T10:20:00"
+					],
+					[
+						"2015-04-24T09:30:00",
+						"2015-04-24T10:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 5034,
+				"currently_enrolled": 139,
+				"instructors": [
+					"Kennings,Andrew"
+				],
+				"max_enrolled": 154,
+				"name": "ECE124",
+				"note": "Choose TUT and LAB sections with same Associated Class number as primary meet.",
+				"section": "LEC 002",
+				"title": "Digital Circuits and Systems"
+			},
+			"ECE124|TUT 101": {
+				"blocks": [
+					[
+						"2015-01-08T10:30:00",
+						"2015-01-08T11:20:00"
+					],
+					[
+						"2015-01-15T10:30:00",
+						"2015-01-15T11:20:00"
+					],
+					[
+						"2015-01-22T10:30:00",
+						"2015-01-22T11:20:00"
+					],
+					[
+						"2015-01-29T10:30:00",
+						"2015-01-29T11:20:00"
+					],
+					[
+						"2015-02-05T10:30:00",
+						"2015-02-05T11:20:00"
+					],
+					[
+						"2015-02-12T10:30:00",
+						"2015-02-12T11:20:00"
+					],
+					[
+						"2015-02-19T10:30:00",
+						"2015-02-19T11:20:00"
+					],
+					[
+						"2015-02-26T10:30:00",
+						"2015-02-26T11:20:00"
+					],
+					[
+						"2015-03-05T10:30:00",
+						"2015-03-05T11:20:00"
+					],
+					[
+						"2015-03-12T10:30:00",
+						"2015-03-12T11:20:00"
+					],
+					[
+						"2015-03-19T10:30:00",
+						"2015-03-19T11:20:00"
+					],
+					[
+						"2015-03-26T10:30:00",
+						"2015-03-26T11:20:00"
+					],
+					[
+						"2015-04-02T10:30:00",
+						"2015-04-02T11:20:00"
+					],
+					[
+						"2015-04-09T10:30:00",
+						"2015-04-09T11:20:00"
+					],
+					[
+						"2015-04-16T10:30:00",
+						"2015-04-16T11:20:00"
+					],
+					[
+						"2015-04-23T10:30:00",
+						"2015-04-23T11:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 4950,
+				"currently_enrolled": 53,
+				"instructors": [
+					"Kennings,Andrew"
+				],
+				"max_enrolled": 53,
+				"name": "ECE124",
+				"note": "Choose TUT and LAB sections with same Associated Class number as primary meet.",
+				"section": "TUT 101",
+				"title": "Digital Circuits and Systems"
+			},
+			"ECE124|TUT 102": {
+				"blocks": [
+					[
+						"2015-01-06T14:30:00",
+						"2015-01-06T15:20:00"
+					],
+					[
+						"2015-01-13T14:30:00",
+						"2015-01-13T15:20:00"
+					],
+					[
+						"2015-01-20T14:30:00",
+						"2015-01-20T15:20:00"
+					],
+					[
+						"2015-01-27T14:30:00",
+						"2015-01-27T15:20:00"
+					],
+					[
+						"2015-02-03T14:30:00",
+						"2015-02-03T15:20:00"
+					],
+					[
+						"2015-02-10T14:30:00",
+						"2015-02-10T15:20:00"
+					],
+					[
+						"2015-02-17T14:30:00",
+						"2015-02-17T15:20:00"
+					],
+					[
+						"2015-02-24T14:30:00",
+						"2015-02-24T15:20:00"
+					],
+					[
+						"2015-03-03T14:30:00",
+						"2015-03-03T15:20:00"
+					],
+					[
+						"2015-03-10T14:30:00",
+						"2015-03-10T15:20:00"
+					],
+					[
+						"2015-03-17T14:30:00",
+						"2015-03-17T15:20:00"
+					],
+					[
+						"2015-03-24T14:30:00",
+						"2015-03-24T15:20:00"
+					],
+					[
+						"2015-03-31T14:30:00",
+						"2015-03-31T15:20:00"
+					],
+					[
+						"2015-04-07T14:30:00",
+						"2015-04-07T15:20:00"
+					],
+					[
+						"2015-04-14T14:30:00",
+						"2015-04-14T15:20:00"
+					],
+					[
+						"2015-04-21T14:30:00",
+						"2015-04-21T15:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 4951,
+				"currently_enrolled": 53,
+				"instructors": [
+					"Kennings,Andrew"
+				],
+				"max_enrolled": 53,
+				"name": "ECE124",
+				"note": "Choose TUT and LAB sections with same Associated Class number as primary meet.",
+				"section": "TUT 102",
+				"title": "Digital Circuits and Systems"
+			},
+			"ECE124|TUT 103": {
+				"blocks": [
+					[
+						"2015-01-06T10:30:00",
+						"2015-01-06T11:20:00"
+					],
+					[
+						"2015-01-13T10:30:00",
+						"2015-01-13T11:20:00"
+					],
+					[
+						"2015-01-20T10:30:00",
+						"2015-01-20T11:20:00"
+					],
+					[
+						"2015-01-27T10:30:00",
+						"2015-01-27T11:20:00"
+					],
+					[
+						"2015-02-03T10:30:00",
+						"2015-02-03T11:20:00"
+					],
+					[
+						"2015-02-10T10:30:00",
+						"2015-02-10T11:20:00"
+					],
+					[
+						"2015-02-17T10:30:00",
+						"2015-02-17T11:20:00"
+					],
+					[
+						"2015-02-24T10:30:00",
+						"2015-02-24T11:20:00"
+					],
+					[
+						"2015-03-03T10:30:00",
+						"2015-03-03T11:20:00"
+					],
+					[
+						"2015-03-10T10:30:00",
+						"2015-03-10T11:20:00"
+					],
+					[
+						"2015-03-17T10:30:00",
+						"2015-03-17T11:20:00"
+					],
+					[
+						"2015-03-24T10:30:00",
+						"2015-03-24T11:20:00"
+					],
+					[
+						"2015-03-31T10:30:00",
+						"2015-03-31T11:20:00"
+					],
+					[
+						"2015-04-07T10:30:00",
+						"2015-04-07T11:20:00"
+					],
+					[
+						"2015-04-14T10:30:00",
+						"2015-04-14T11:20:00"
+					],
+					[
+						"2015-04-21T10:30:00",
+						"2015-04-21T11:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 4952,
+				"currently_enrolled": 42,
+				"instructors": [
+					"Kennings,Andrew"
+				],
+				"max_enrolled": 53,
+				"name": "ECE124",
+				"note": "Choose TUT and LAB sections with same Associated Class number as primary meet.",
+				"section": "TUT 103",
+				"title": "Digital Circuits and Systems"
+			},
+			"ECE124|TUT 106": {
+				"blocks": [
+					[
+						"2015-01-06T15:30:00",
+						"2015-01-06T16:20:00"
+					],
+					[
+						"2015-01-13T15:30:00",
+						"2015-01-13T16:20:00"
+					],
+					[
+						"2015-01-20T15:30:00",
+						"2015-01-20T16:20:00"
+					],
+					[
+						"2015-01-27T15:30:00",
+						"2015-01-27T16:20:00"
+					],
+					[
+						"2015-02-03T15:30:00",
+						"2015-02-03T16:20:00"
+					],
+					[
+						"2015-02-10T15:30:00",
+						"2015-02-10T16:20:00"
+					],
+					[
+						"2015-02-17T15:30:00",
+						"2015-02-17T16:20:00"
+					],
+					[
+						"2015-02-24T15:30:00",
+						"2015-02-24T16:20:00"
+					],
+					[
+						"2015-03-03T15:30:00",
+						"2015-03-03T16:20:00"
+					],
+					[
+						"2015-03-10T15:30:00",
+						"2015-03-10T16:20:00"
+					],
+					[
+						"2015-03-17T15:30:00",
+						"2015-03-17T16:20:00"
+					],
+					[
+						"2015-03-24T15:30:00",
+						"2015-03-24T16:20:00"
+					],
+					[
+						"2015-03-31T15:30:00",
+						"2015-03-31T16:20:00"
+					],
+					[
+						"2015-04-07T15:30:00",
+						"2015-04-07T16:20:00"
+					],
+					[
+						"2015-04-14T15:30:00",
+						"2015-04-14T16:20:00"
+					],
+					[
+						"2015-04-21T15:30:00",
+						"2015-04-21T16:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 5037,
+				"currently_enrolled": 45,
+				"instructors": [
+					"Kennings,Andrew"
+				],
+				"max_enrolled": 51,
+				"name": "ECE124",
+				"note": "Choose TUT and LAB sections with same Associated Class number as primary meet.",
+				"section": "TUT 106",
+				"title": "Digital Circuits and Systems"
+			},
+			"ECON201|LEC 001": {
+				"blocks": [
+					[
+						"2015-01-06T13:00:00",
+						"2015-01-06T14:20:00"
+					],
+					[
+						"2015-01-08T13:00:00",
+						"2015-01-08T14:20:00"
+					],
+					[
+						"2015-01-13T13:00:00",
+						"2015-01-13T14:20:00"
+					],
+					[
+						"2015-01-15T13:00:00",
+						"2015-01-15T14:20:00"
+					],
+					[
+						"2015-01-20T13:00:00",
+						"2015-01-20T14:20:00"
+					],
+					[
+						"2015-01-22T13:00:00",
+						"2015-01-22T14:20:00"
+					],
+					[
+						"2015-01-27T13:00:00",
+						"2015-01-27T14:20:00"
+					],
+					[
+						"2015-01-29T13:00:00",
+						"2015-01-29T14:20:00"
+					],
+					[
+						"2015-02-03T13:00:00",
+						"2015-02-03T14:20:00"
+					],
+					[
+						"2015-02-05T13:00:00",
+						"2015-02-05T14:20:00"
+					],
+					[
+						"2015-02-10T13:00:00",
+						"2015-02-10T14:20:00"
+					],
+					[
+						"2015-02-12T13:00:00",
+						"2015-02-12T14:20:00"
+					],
+					[
+						"2015-02-17T13:00:00",
+						"2015-02-17T14:20:00"
+					],
+					[
+						"2015-02-19T13:00:00",
+						"2015-02-19T14:20:00"
+					],
+					[
+						"2015-02-24T13:00:00",
+						"2015-02-24T14:20:00"
+					],
+					[
+						"2015-02-26T13:00:00",
+						"2015-02-26T14:20:00"
+					],
+					[
+						"2015-03-03T13:00:00",
+						"2015-03-03T14:20:00"
+					],
+					[
+						"2015-03-05T13:00:00",
+						"2015-03-05T14:20:00"
+					],
+					[
+						"2015-03-10T13:00:00",
+						"2015-03-10T14:20:00"
+					],
+					[
+						"2015-03-12T13:00:00",
+						"2015-03-12T14:20:00"
+					],
+					[
+						"2015-03-17T13:00:00",
+						"2015-03-17T14:20:00"
+					],
+					[
+						"2015-03-19T13:00:00",
+						"2015-03-19T14:20:00"
+					],
+					[
+						"2015-03-24T13:00:00",
+						"2015-03-24T14:20:00"
+					],
+					[
+						"2015-03-26T13:00:00",
+						"2015-03-26T14:20:00"
+					],
+					[
+						"2015-03-31T13:00:00",
+						"2015-03-31T14:20:00"
+					],
+					[
+						"2015-04-02T13:00:00",
+						"2015-04-02T14:20:00"
+					],
+					[
+						"2015-04-07T13:00:00",
+						"2015-04-07T14:20:00"
+					],
+					[
+						"2015-04-09T13:00:00",
+						"2015-04-09T14:20:00"
+					],
+					[
+						"2015-04-14T13:00:00",
+						"2015-04-14T14:20:00"
+					],
+					[
+						"2015-04-16T13:00:00",
+						"2015-04-16T14:20:00"
+					],
+					[
+						"2015-04-21T13:00:00",
+						"2015-04-21T14:20:00"
+					],
+					[
+						"2015-04-23T13:00:00",
+						"2015-04-23T14:20:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 3313,
+				"currently_enrolled": 100,
+				"instructors": [
+					"Nimubona,Alain-Desire"
+				],
+				"max_enrolled": 100,
+				"name": "ECON201",
+				"note": null,
+				"section": "LEC 001",
+				"title": "Microeconomic Theory 1"
+			},
+			"SCI267|LEC 001": {
+				"blocks": [
+					[
+						"2015-01-07T11:30:00",
+						"2015-01-07T12:50:00"
+					],
+					[
+						"2015-01-09T11:30:00",
+						"2015-01-09T12:50:00"
+					],
+					[
+						"2015-01-14T11:30:00",
+						"2015-01-14T12:50:00"
+					],
+					[
+						"2015-01-16T11:30:00",
+						"2015-01-16T12:50:00"
+					],
+					[
+						"2015-01-21T11:30:00",
+						"2015-01-21T12:50:00"
+					],
+					[
+						"2015-01-23T11:30:00",
+						"2015-01-23T12:50:00"
+					],
+					[
+						"2015-01-28T11:30:00",
+						"2015-01-28T12:50:00"
+					],
+					[
+						"2015-01-30T11:30:00",
+						"2015-01-30T12:50:00"
+					],
+					[
+						"2015-02-04T11:30:00",
+						"2015-02-04T12:50:00"
+					],
+					[
+						"2015-02-06T11:30:00",
+						"2015-02-06T12:50:00"
+					],
+					[
+						"2015-02-11T11:30:00",
+						"2015-02-11T12:50:00"
+					],
+					[
+						"2015-02-13T11:30:00",
+						"2015-02-13T12:50:00"
+					],
+					[
+						"2015-02-18T11:30:00",
+						"2015-02-18T12:50:00"
+					],
+					[
+						"2015-02-20T11:30:00",
+						"2015-02-20T12:50:00"
+					],
+					[
+						"2015-02-25T11:30:00",
+						"2015-02-25T12:50:00"
+					],
+					[
+						"2015-02-27T11:30:00",
+						"2015-02-27T12:50:00"
+					],
+					[
+						"2015-03-04T11:30:00",
+						"2015-03-04T12:50:00"
+					],
+					[
+						"2015-03-06T11:30:00",
+						"2015-03-06T12:50:00"
+					],
+					[
+						"2015-03-11T11:30:00",
+						"2015-03-11T12:50:00"
+					],
+					[
+						"2015-03-13T11:30:00",
+						"2015-03-13T12:50:00"
+					],
+					[
+						"2015-03-18T11:30:00",
+						"2015-03-18T12:50:00"
+					],
+					[
+						"2015-03-20T11:30:00",
+						"2015-03-20T12:50:00"
+					],
+					[
+						"2015-03-25T11:30:00",
+						"2015-03-25T12:50:00"
+					],
+					[
+						"2015-03-27T11:30:00",
+						"2015-03-27T12:50:00"
+					],
+					[
+						"2015-04-01T11:30:00",
+						"2015-04-01T12:50:00"
+					],
+					[
+						"2015-04-03T11:30:00",
+						"2015-04-03T12:50:00"
+					],
+					[
+						"2015-04-08T11:30:00",
+						"2015-04-08T12:50:00"
+					],
+					[
+						"2015-04-10T11:30:00",
+						"2015-04-10T12:50:00"
+					],
+					[
+						"2015-04-15T11:30:00",
+						"2015-04-15T12:50:00"
+					],
+					[
+						"2015-04-17T11:30:00",
+						"2015-04-17T12:50:00"
+					],
+					[
+						"2015-04-22T11:30:00",
+						"2015-04-22T12:50:00"
+					],
+					[
+						"2015-04-24T11:30:00",
+						"2015-04-24T12:50:00"
+					]
+				],
+				"campus": "UW U",
+				"class_number": 6512,
+				"currently_enrolled": 16,
+				"instructors": [
+					"Fraser,Doreen"
+				],
+				"max_enrolled": 25,
+				"name": "SCI267",
+				"note": null,
+				"section": "LEC 001",
+				"title": "Introduction to the Philosophy of Science"
+			}
+		}
+	};
+	</script>
+</body>
+</html>

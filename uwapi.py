@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-UW_API_KEY = "PUT_YOUR_UW_API_KEY_HERE"
+UW_API_KEY = "123afda14d0a233ecb585591a95e0339"
 UW_API_BASE = "http://api.uwaterloo.ca/v2/"
 
 import requests

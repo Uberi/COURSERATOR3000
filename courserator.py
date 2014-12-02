@@ -39,9 +39,12 @@ class CourseListConverter(BaseConverter):
         return ",".join(BaseConverter.to_url(value) for value in values)
 app.url_map.converters["courselist"] = CourseListConverter
 
+import os
+@app.route('/lib/<path:path>')
+def static_lib_proxy(path): return app.send_static_file("lib/" + path) # MIME type is guessed automatically
+
 @app.route("/")
-def index():
-    return "Stuff."
+def index(): return app.send_static_file("index.html") # MIME type is guessed automatically
 
 @app.route("/schedules/<term:term>/<courselist:courses>")
 def get_schedules(term, courses):
