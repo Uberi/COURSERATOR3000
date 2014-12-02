@@ -51,7 +51,8 @@ def get_courses_data(term, course_list):
     result = {}
     for course in course_list:
         assert isinstance(course, str)
-        subject, catalog_number = re.match("([a-zA-Z]+)\s*(\d+)", course).groups()
+        subject, catalog_number = re.match("^\s*([a-zA-Z]+)\s*(\d\w*)\s*$", course).groups()
+        assert subject and catalog_number
         result[course] = uwapi("terms/{0}/{1}/{2}/schedule".format(term, subject, catalog_number))
     return result
 
