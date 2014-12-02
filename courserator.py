@@ -3,10 +3,10 @@
 from datetime import datetime
 import shelve
 
-import course_info, solver
-
 from flask import Flask, jsonify, request
 from werkzeug.routing import BaseConverter, ValidationError
+
+import course_info, scheduler
 
 # set up application
 app = Flask(__name__)
@@ -50,7 +50,7 @@ def get_schedules(term, courses):
     
     course_sections = course_info.get_courses_sections(courses_data, term[1], term[2])
 
-    schedules = solver.compute_schedules(course_sections)
+    schedules = scheduler.compute_schedules(course_sections)
 
     sections = {section for schedule in schedules for section in schedule} # set of every section in every schedules
     section_entries = course_info.get_section_entries(courses_data, sections)
@@ -70,7 +70,7 @@ def get_schedules(term, courses):
             "campus": section_entry["campus"],
             "note": section_entry["note"],
             "class_number": section_entry["class_number"],
-            "blocks": course_sections[section],
+            "blocks": [(start.isoformat(), end.isoformat()) for start, end in course_sections[section]],
         }
 
     json_schedules = [[section[0] + "|" + section[1] for section in schedule] for schedule in schedules]
