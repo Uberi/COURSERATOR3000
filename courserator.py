@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from datetime import datetime
-import shelve
 
 from flask import Flask, jsonify, request
 from werkzeug.routing import BaseConverter, ValidationError
@@ -80,6 +79,5 @@ def get_schedules(term, courses):
     return jsonify(sections=json_sections_info, schedules=json_schedules)
 
 if __name__ == "__main__":
-    with shelve.open("schedules") as datastore:
-        app.run(debug=True, port=5000) # debug mode
-        #app.run(debug=False, host="0.0.0.0", port=80) # release mode - publicly visible
+    app.run(debug=True, port=5000) # debug mode
+    #app.run(debug=False, host="0.0.0.0", port=80) # release mode - publicly visible

@@ -39,8 +39,17 @@ Reducing the schedule conflicts to SAT clauses is simple. Let $A_1, \ldots, A_m$
 
 To avoid multiple sections of the same course being selected, we specify the clauses $\neg {A_i}_x \lor \neg {A_i}_y$ for each distinct set $\left\{x, y\right\}$, for each $i$. Now we have specified that we want one and only one section from each course.
 
-The conflict detector is responsible for detecting every possible pair of conflicting sections. This means that we run it once over all the sections and obtain a list of conflicting pairs, which is a good thing since it's rather slow - it's essentially a for-loop nested 4 levels deep! However, in practice it completes quickly enough, helped by the fact that we only need to run it once per query.
+The conflict detector is responsible for detecting every possible pair of conflicting sections. This means that we run it once over all the sections and obtain a list of conflicting pairs, which is a good thing since its time complexity is pretty bad (but still polynomial). However, in practice it completes quickly enough, helped by the fact that we only need to run it once per query.
 
 The conflict detector outputs pairs $({A_i}_x, {A_j}_y)$, which represent the idea that the section ${A_i}_x$ conflicts with ${A_j}_y$. For each of these pairs, we specify the clause $\neg {A_i}_x \lor \neg {A_j}_y$. Now we have specified that the conflicting sections cannot both be chosen.
 
 Solving for all these clauses using the SAT solver, we obtain solutions of the form ${A_1}_x, \ldots, {A_n}_y$ - a list of course sections that were solved for. These are the conflict-free schedules. The only thing left to do after this is display the results.
+
+Essentially:
+
+1. User requests courses to attempt to schedule.
+2. Course data for each course is requested from the [uWaterloo Open Data API](http://api.uwaterloo.ca/), computing the start/end times of each individual block for each section. A simple caching mechanism cuts down on unnecessary requests.
+3. Conflicts are detected by looking for overlapping blocks.
+4. Constraints are generated from the course sections and conflicts between them.
+5. Schedules are solved for using PycoSAT.
+6. Schedules are formatted and displayed to the user.
