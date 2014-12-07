@@ -23,12 +23,56 @@ Hosting it yourself
 
 Is the site down? Want to set up your own Courserator instance? Here's how.
 
+Using just Flask:
+
 1. Download [this repository](https://github.com/Uberi/COURSERATOR-3000/archive/master.zip) and extract it somewhere.
 2. Make sure Python 3.4 with `pip` is installed. Test this by running `pip3` in the terminal. If it prints out `pip` usage instructions, everything is fine.
 3. OPTIONAL: If you are using Windows and want to avoid VS2008 (needed to compile Pycosat), install Pycosat from the included `pycosat-0.6.0.win32-py3.4.exe` installer.
 4. Run `build.bat` if using Windows, and `build.sh` otherwise. Wait for it to finish installing the Python packages needed to run this app.
 5. RECOMMENDED: Set your own uWaterloo API key for the app by changing `UW_API_KEY` in `uwapi.py`, line 3. You can get a key from [here](http://api.uwaterloo.ca/apikey/). If not specified, a default key is used.
-6. Run `courserator.py` to start the server.
+6. Run `__init__.py` to start the server.
+
+Hosting it properly
+-------------------
+
+For "real" (production-grade) hosting, we'll be using Apache 2 and Flask over WSGI. These instructions target Ubuntu DigitalOcean Droplets, but should work on any Debain-based system.
+
+Make sure you have all the dependencies:
+
+    sudo apt-get update
+    sudo apt-get install python3 python3-pip apache2 libapache2-mod-wsgi libapache2-mod-wsgi-py3
+
+Set up the application in the desired directory (in this case, `/var/www`):
+
+    cd /var/www
+    git clone https://github.com/Uberi/COURSERATOR-3000.git # if working offline, copy the folder containing this README to `/var/www` instead of using `git clone`
+    cd /var/www/COURSERATOR3000/
+    bash build.sh
+    chmod +x COURSERATOR3000.wsgi # this needs to be executable for Apache to run it
+
+Now to configure Apache to recognize the site, open `/etc/apache2/sites-available/COURSERATOR3000.conf` and give it the following contents:
+
+    <VirtualHost *:80>
+        ServerName anthony-zhang.me
+        ServerAdmin azhang9@gmail.com
+        WSGIScriptAlias / /var/www/COURSERATOR3000/COURSERATOR3000.wsgi
+        <Directory /var/www/COURSERATOR3000/COURSERATOR3000/>
+            Order allow,deny
+            Allow from all
+        </Directory>
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        LogLevel warn
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+    </VirtualHost>
+
+The site can now be enabled:
+
+    sudo a2enmod wsgi
+    sudo a2ensite COURSERATOR3000
+    service apache2 reload
+    service apache2 restart
+
+Done! Now you can monitor it with `tail -f /var/log/apache2/error.log`.
 
 Implementation notes
 --------------------
