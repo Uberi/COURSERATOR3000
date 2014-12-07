@@ -5,7 +5,7 @@ function showJSON()
 	var win = window.open("about:blank", null, "width=400,height=300");
 	var doc = win.document;
 	doc.open("text/html");
-	doc.write(JSON.stringify(CURRENT_DATA));
+	doc.write(JSON.stringify(CURRENT_DATA, null, 4));
 	doc.close();
 }
 
