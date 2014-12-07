@@ -40,15 +40,15 @@ For "real" (production-grade) hosting, we'll be using Apache 2 and Flask over WS
 Make sure you have all the dependencies:
 
     sudo apt-get update
-    sudo apt-get install python3 python3-pip apache2 libapache2-mod-wsgi libapache2-mod-wsgi-py3
+    sudo apt-get install python3 python3-pip apache2 libapache2-mod-wsgi-py3
 
 Set up the application in the desired directory (in this case, `/var/www`):
 
     cd /var/www
-    git clone https://github.com/Uberi/COURSERATOR-3000.git # if working offline, copy the folder containing this README to `/var/www` instead of using `git clone`
+    sudo git clone https://github.com/Uberi/COURSERATOR3000.git # if working offline, copy the folder containing this README to `/var/www` instead of using `git clone`
     cd /var/www/COURSERATOR3000/
-    bash build.sh
-    chmod +x COURSERATOR3000.wsgi # this needs to be executable for Apache to run it
+    sudo bash build.sh
+    sudo chmod +x COURSERATOR3000.wsgi # this needs to be executable for Apache to run it
 
 Now to configure Apache to recognize the site, open `/etc/apache2/sites-available/COURSERATOR3000.conf` and give it the following contents:
 
@@ -69,8 +69,8 @@ The site can now be enabled:
 
     sudo a2enmod wsgi
     sudo a2ensite COURSERATOR3000
-    service apache2 reload
-    service apache2 restart
+    sudo service apache2 reload
+    sudo service apache2 restart
 
 Done! Now you can monitor it with `tail -f /var/log/apache2/error.log`.
 
@@ -97,3 +97,14 @@ Essentially:
 4. Constraints are generated from the course sections and conflicts between them.
 5. Schedules are solved for using PycoSAT.
 6. Schedules are formatted and displayed to the user.
+
+License
+-------
+
+Copyright 2014 Anthony Zhang.
+
+This program is licensed under the [GNU Affero General Public License](http://www.gnu.org/licenses/agpl-3.0.html).
+
+Basically, this means everyone is free to use, modify, and distribute the files, as long as these modifications are also licensed the same way.
+
+Most importantly, the Affero variant of the GPL requires you to publish your modifications in source form, even if the program is hosted as a service, without being distributed.
