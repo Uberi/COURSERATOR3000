@@ -141,5 +141,6 @@ $(document).ready(function() {
 			dow: [1, 2, 3, 4, 5], // business days
 		},
 		minTime: "8:00", maxTime: "22:00",
+		allDayText: "UNSCHEDULED",
 	});
 });
