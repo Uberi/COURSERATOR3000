@@ -8,11 +8,9 @@ import time
 import requests
 
 cached_responses = {} # the cached responses of each request
-cache_expiry = 60 * 60 * 24 * 7 # cache expiry duration in seconds
-
 def uwapi(endpoint, params={}):
     try:
-        if endpoint in cached_responses and time.time() - cached_responses[endpoint]["meta"]["timestamp"] < cache_expiry: # check if requested endpoint is cached and didn't expire
+        if endpoint in cached_responses: # check if requested endpoint is cached
             print("retrieving", endpoint)
             return cached_responses[endpoint]["data"]
     except KeyError: pass # catch any KeyError instances upon invalid data
