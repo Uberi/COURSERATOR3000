@@ -1,5 +1,14 @@
 var CURRENT_DATA = null;
 
+function showJSON()
+{
+	var win = window.open("about:blank", null, "width=400,height=300");
+	var doc = win.document;
+	doc.open("text/html");
+	doc.write(JSON.stringify(CURRENT_DATA));
+	doc.close();
+}
+
 var currentSource = null;
 function calendarShowSchedule(sections, schedule) {
 	var calendar = $("#calendar");
