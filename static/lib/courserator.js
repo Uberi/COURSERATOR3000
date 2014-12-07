@@ -1,11 +1,17 @@
 var CURRENT_DATA = null;
 
-function showJSON()
-{
+var escapeHTML = (function () {
+	var replacements = { "\"": "&quot;", "&": "&amp;", "<": "&lt;", ">": "&gt;" };
+	return function (text) {
+		return text.replace(/[\"&<>]/g, function (a) { return replacements[a]; });
+	};
+}());
+
+function showJSON() {
 	var win = window.open("about:blank", null, "width=400,height=300");
 	var doc = win.document;
 	doc.open("text/html");
-	doc.write(JSON.stringify(CURRENT_DATA, null, 4));
+	doc.write("<pre>" + escapeHTML(JSON.stringify(CURRENT_DATA, null, 2)) + "</pre>");
 	doc.close();
 }
 
