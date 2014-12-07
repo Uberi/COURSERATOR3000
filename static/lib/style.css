@@ -1,0 +1,67 @@
+body {
+	font-family: monospace;
+	width: 80%;
+	margin: 5em auto;
+	text-align: center;
+}
+
+h1 { font-size: 4em; margin: 0; }
+
+a { color: inherit }
+
+.bigLink {
+	display: block;
+	margin: 1em;
+	font-size: 2em;
+}
+
+.separator {
+	font-size: 1em;
+	text-align: center;
+	margin-top: 3em;
+}
+.separator:after {
+	display: block;
+	content: "\25BC";
+	font-size: 10em;
+	margin-top: -0.3em;
+}
+
+#courses {
+	margin: 2em;
+	margin-bottom: 0;
+	position: relative;
+	display: inline-block;
+	border-bottom: 0.2em solid black;
+}
+
+#courses > * { font-size: 1.5em; }
+
+#term {
+	font-family: monospace;
+	display: inline-block;
+	margin-right: 0.5em;
+	width: 8em;
+	background: transparent;
+	outline: none;
+	border: none;
+}
+
+#query {
+	font-family: monospace;
+	border: none;
+	outline: none;
+	width: 25em;
+}
+
+#courses input[type=submit] {
+	margin-left: -0.8em;
+	background: transparent;
+	border: none;
+}
+
+.classBlock {
+	padding: 0.2em;
+	background-color: white;
+	color: black !important;
+}

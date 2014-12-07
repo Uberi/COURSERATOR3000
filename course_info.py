@@ -3,7 +3,10 @@
 import re
 from datetime import datetime, timedelta
 
-from uwapi import uwapi
+try:
+    from . import uwapi # relative import
+except SystemError: # not being used as a module
+    import uwapi # normal import
 
 def parse_date(value, default_date):
     components = list(map(int, re.findall("\d+", value)))
@@ -53,7 +56,7 @@ def get_courses_data(term, course_list):
         assert isinstance(course, str)
         subject, catalog_number = re.match("^\s*([a-zA-Z]+)\s*(\d\w*)\s*$", course).groups()
         assert subject and catalog_number
-        result[course] = uwapi("terms/{0}/{1}/{2}/schedule".format(term, subject, catalog_number))
+        result[course] = uwapi.uwapi("terms/{0}/{1}/{2}/schedule".format(term, subject, catalog_number))
     return result
 
 def get_courses_sections(courses_data, default_start_date, default_end_date):

@@ -125,7 +125,11 @@ def compute_schedules(course_sections):
     print("=== solving for schedules")
     print("=========================================================")
 
-    schedules = list(scheduler.solve())
+    schedules = []
+    limit = 500 # wip: boost this maybe
+    for index, schedule in enumerate(scheduler.solve()):
+        if index == limit: break
+        schedules.append(schedule)
 
     possibility_space = 1
     for sections in requirements.values(): possibility_space *= len(sections)

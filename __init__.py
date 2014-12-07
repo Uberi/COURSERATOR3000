@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
-from datetime import datetime
+from datetime import datetime, time
 
 from flask import Flask, jsonify, request
 from werkzeug.routing import BaseConverter, ValidationError
 
-import course_info, scheduler
+try:
+    from . import course_info, scheduler # relative import
+except SystemError: # not being used as a module
+    import course_info, scheduler # normal import
 
 # set up application
 app = Flask(__name__)
@@ -38,7 +41,6 @@ class CourseListConverter(BaseConverter):
         return ",".join(BaseConverter.to_url(value) for value in values)
 app.url_map.converters["courselist"] = CourseListConverter
 
-import os
 @app.route('/lib/<path:path>')
 def static_lib_proxy(path): return app.send_static_file("lib/" + path) # MIME type is guessed automatically
 
@@ -51,11 +53,12 @@ def get_schedules(term, courses):
     #from test_data import courses_data
     
     course_sections = course_info.get_courses_sections(courses_data, term[1], term[2])
-
     schedules = scheduler.compute_schedules(course_sections)
 
     sections = {section for schedule in schedules for section in schedule} # set of every section in every schedules
     section_entries = course_info.get_section_entries(courses_data, sections)
+
+    # compute section info
     json_sections_info = {}
     for section, section_entry in section_entries.items():
         instructors = set()
@@ -73,10 +76,34 @@ def get_schedules(term, courses):
             "note": section_entry["note"],
             "class_number": section_entry["class_number"],
             "blocks": [(start.isoformat(), end.isoformat()) for start, end in course_sections[section]],
+            "earliest": min(start.time() for start, end in course_sections[section]).strftime("%H:%M"),
+            "latest": max(end.time() for start, end in course_sections[section]).strftime("%H:%M"),
         }
 
+    # compute schedule info
     json_schedules = [[section[0] + "|" + section[1] for section in schedule] for schedule in schedules]
-    return jsonify(sections=json_sections_info, schedules=json_schedules)
+
+    #compute schedule stats
+    json_stats = []
+    for schedule in json_schedules:
+        earliest, latest = "23:59", "00:00"
+        instructors = set()
+        for section_identifier in schedule:
+            section = json_sections_info[section_identifier]
+            instructors.update(section["instructors"])
+            if section["earliest"] < earliest: earliest = section["earliest"]
+            if section["latest"] > latest: latest = section["latest"]
+        json_stats.append({
+            "earliest": earliest,
+            "latest": latest,
+            "instructors": "; ".join(sorted(instructors)),
+        })
+
+    return jsonify(
+        sections=json_sections_info,
+        schedules=json_schedules,
+        schedule_stats=json_stats,
+    )
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000) # debug mode
