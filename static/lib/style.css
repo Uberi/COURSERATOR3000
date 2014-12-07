@@ -64,4 +64,9 @@ a { color: inherit }
 	padding: 0.2em;
 	background-color: white;
 	color: black !important;
+	font-size: 60%;
+}
+
+.fc-day-grid-event { /* all-day event classBlock */
+	white-space: wrap;
 }

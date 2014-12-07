@@ -65,6 +65,11 @@ def get_schedules(term, courses):
         #wip: keep track of locations
         for class_entry in section_entry["classes"]:
             instructors.update(class_entry["instructors"])
+        try:
+            earliest = min(start.time() for start, end in course_sections[section]).strftime("%H:%M")
+            latest = max(end.time() for start, end in course_sections[section]).strftime("%H:%M")
+        except ValueError:
+            earliest, latest = None, None
         json_sections_info[section[0] + "|" + section[1]] = {
             "name": section_entry["subject"] + section_entry["catalog_number"],
             "section": section_entry["section"],
@@ -76,8 +81,8 @@ def get_schedules(term, courses):
             "note": section_entry["note"],
             "class_number": section_entry["class_number"],
             "blocks": [(start.isoformat(), end.isoformat()) for start, end in course_sections[section]],
-            "earliest": min(start.time() for start, end in course_sections[section]).strftime("%H:%M"),
-            "latest": max(end.time() for start, end in course_sections[section]).strftime("%H:%M"),
+            "earliest": earliest,
+            "latest": latest,
         }
 
     # compute schedule info
@@ -86,16 +91,18 @@ def get_schedules(term, courses):
     #compute schedule stats
     json_stats = []
     for schedule in json_schedules:
-        earliest, latest = "23:59", "00:00"
+        earliest, latest = "9", "/" # beyond the max and min values
         instructors = set()
         for section_identifier in schedule:
             section = json_sections_info[section_identifier]
             instructors.update(section["instructors"])
-            if section["earliest"] < earliest: earliest = section["earliest"]
-            if section["latest"] > latest: latest = section["latest"]
+            if section["earliest"] is not None and section["earliest"] < earliest:
+                earliest = section["earliest"]
+            if section["latest"] is not None and section["latest"] > latest:
+                latest = section["latest"]
         json_stats.append({
-            "earliest": earliest,
-            "latest": latest,
+            "earliest": earliest if earliest != "9" else "-",
+            "latest": latest if latest != "/" else "-",
             "instructors": "; ".join(sorted(instructors)),
         })
 
