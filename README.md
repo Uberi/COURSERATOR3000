@@ -3,7 +3,7 @@ COURSERATOR 3000
 
 Dead simple course schedule generator for University of Waterloo courses.
 
-![Screenshot]() ;wip
+![Screenshot](screenshot.png)
 
 If you've ever used [Waterloo Course Qualifier](http://coursequalifier.com/) and gotten the below error message, this is for you.
 
