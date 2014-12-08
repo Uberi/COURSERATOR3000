@@ -74,13 +74,39 @@ function calendarGetEvents(sections, schedule, start, end) { // obtain the event
 function tableShowScheduleList(scheduleStats) {
 	var table = $("#scheduleList");
 	table.DataTable().destroy(); // destroy the old schedule list
+	var columns = [
+		{ data: "earliest", width: "auto" },
+		{ data: "latest", width: "auto" },
+	];
+	
+	// get the set of all instructors as a list and add their columns
+	var instructorsMap = {};
+	for (var i = 0; i < scheduleStats.length; i ++) {
+		var schedule = scheduleStats[i];
+		for (var j = 0; j < schedule.length; j ++)
+			instructorsMap[schedule[j]] = true;
+	}
+	var instructors = instructorsMap.keys().sort();
+	for (var i = 0; i < instructors.length; i ++) columns.push({ data: "instructor", width: "auto" });
+	
+	// compute the new schedule statistics with the instructors
+	var newStats = [];
+	for (var i = 0; i < scheduleStats.length; i ++) {
+		var schedule = scheduleStats[i];
+		var newInstructors = [];
+		for (var j = 0; j < instructors.length; j ++)
+			newInstructors.push(schedule.instructors.indexOf(instructors[i]) ? instructors[i] : "-");
+		
+		newStats.push({
+			earliest: schedule.earliest,
+			latest: schedule.latest,
+			instructors: newInstructors,
+		});
+	}
+	
 	table.DataTable({
-		data: scheduleStats,
-		columns: [
-			{ data: "earliest", width: "auto" },
-			{ data: "latest", width: "auto" },
-			{ data: "instructors", width: "auto" },
-		],
+		data: newStats,
+		columns: columns,
 		paging: false,
 		scrollY: 400,
 		oLanguage: {

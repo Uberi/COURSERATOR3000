@@ -103,7 +103,7 @@ def get_schedules(term, courses):
         json_stats.append({
             "earliest": earliest if earliest != "9" else "-",
             "latest": latest if latest != "/" else "-",
-            "instructors": "; ".join(sorted(instructors)),
+            "instructors": sorted(instructors),
         })
 
     return jsonify(
