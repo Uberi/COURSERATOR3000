@@ -74,34 +74,38 @@ function calendarGetEvents(sections, schedule, start, end) { // obtain the event
 function tableShowScheduleList(scheduleStats) {
 	var table = $("#scheduleList");
 	table.DataTable().destroy(); // destroy the old schedule list
+	// get the set of all instructors as a list and add their columns
+	var instructorsMap = {};
+	for (var i = 0; i < scheduleStats.length; i ++) {
+		var schedule = scheduleStats[i].instructors;
+		for (var j = 0; j < schedule.length; j ++)
+			instructorsMap[schedule[j]] = true;
+	}
+	
+	var instructors = Object.keys(instructorsMap).sort();
+	
 	var columns = [
 		{ data: "earliest", width: "auto" },
 		{ data: "latest", width: "auto" },
 	];
-	
-	// get the set of all instructors as a list and add their columns
-	var instructorsMap = {};
-	for (var i = 0; i < scheduleStats.length; i ++) {
-		var schedule = scheduleStats[i];
-		for (var j = 0; j < schedule.length; j ++)
-			instructorsMap[schedule[j]] = true;
+	$("#scheduleList thead th:gt(1)").remove(); // remove every column past the second
+	var headerRow = $("#scheduleList thead tr");
+	for (var i = 0; i < instructors.length; i ++) {
+		columns.push({ data: "instructor" + i, width: "auto" });
+		headerRow.append("<th>" + instructors[i] + "</th>");
 	}
-	var instructors = instructorsMap.keys().sort();
-	for (var i = 0; i < instructors.length; i ++) columns.push({ data: "instructor", width: "auto" });
 	
 	// compute the new schedule statistics with the instructors
 	var newStats = [];
 	for (var i = 0; i < scheduleStats.length; i ++) {
 		var schedule = scheduleStats[i];
-		var newInstructors = [];
-		for (var j = 0; j < instructors.length; j ++)
-			newInstructors.push(schedule.instructors.indexOf(instructors[i]) ? instructors[i] : "-");
-		
-		newStats.push({
+		var newStat = {
 			earliest: schedule.earliest,
 			latest: schedule.latest,
-			instructors: newInstructors,
-		});
+		};
+		for (var j = 0; j < instructors.length; j ++)
+			newStat["instructor" + j] = schedule.instructors.indexOf(instructors[j]) != -1 ? "yep" : "-";
+		newStats.push(newStat);
 	}
 	
 	table.DataTable({
@@ -109,9 +113,13 @@ function tableShowScheduleList(scheduleStats) {
 		columns: columns,
 		paging: false,
 		scrollY: 400,
-		oLanguage: {
-			sEmptyTable: function(){ return "No schedules available - make a new search!"; }
-		},
+		oLanguage: { sEmptyTable: function() { return "No schedules available - make a new search!"; } },
+	});
+	
+	// force the header to scroll horizontally with the body
+	var wrapper = $("#scheduleList_wrapper");
+	wrapper.find(".dataTables_scrollBody").scroll(function() {
+		wrapper.find(".dataTables_scrollHeadInner").css("margin-left", -$(this).scrollLeft() + "px");
 	});
 }
 
