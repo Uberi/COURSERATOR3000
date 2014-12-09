@@ -141,6 +141,7 @@ function querySearchCourses(event) {
 	$("#progress").show();
 	$.get(resultURL, function(data) {
 		$("#progress").hide();
+		if (data.schedules.length === 0) { alert("jdn pls"); return; }
 		console.log(data);
 		CURRENT_DATA = data;
 		tableShowScheduleList(data.schedule_stats);

@@ -49,6 +49,13 @@ def index(): return app.send_static_file("index.html") # MIME type is guessed au
 
 @app.route("/schedules/<term:term>/<courselist:courses>")
 def get_schedules(term, courses):
+    if len(courses) > 10:
+        return jsonify(
+            sections={},
+            schedules=[],
+            schedule_stats=[],
+        )
+    
     courses_data = course_info.get_courses_data(term[0], courses)
     #from test_data import courses_data
     
