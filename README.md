@@ -77,7 +77,7 @@ Done! Now you can monitor it with `tail -f /var/log/apache2/error.log`.
 Implementation notes
 --------------------
 
-The solver uses Pycosat as a constraint solver to directly calculate schedules with no conflicts. This eliminates a lot of the work in searching for non-conflicting schedules. For example, out of a search space of roughly 38,000 possible schedules in the code examples, we can solve for the 72 possibilities within 5 milliseconds.
+The schedule conflict solver uses [Pycosat](https://pypi.python.org/pypi/pycosat) as a constraint solver to directly calculate schedules with no conflicts. This eliminates a lot of the work in searching for non-conflicting schedules. For example, out of a search space of roughly 38,000 possible schedules in the code examples, we can solve for the 72 possibilities within 5 milliseconds.
 
 Reducing the schedule conflicts to SAT clauses is simple. Let $A_1, \ldots, A_m$ be courses, each with sections ${A_i}_1, \ldots, {A_i}_m$. Then to specify that we want one of the sections of each course, we specify the clause ${A_i}_1 \lor \ldots \lor {A_i}_1$ for each $i$.
 
