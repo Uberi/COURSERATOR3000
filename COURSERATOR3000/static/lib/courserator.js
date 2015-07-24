@@ -137,7 +137,7 @@ function querySearchCourses(event) {
 	if (!queryValidateCourses()) return;
 	
 	var term = $("#term").val();
-	var resultURL = "schedules/" + term + "/" + $("#query").val(); // wip: term selection
+	var resultURL = "schedules/" + term + "/" + $("#query").val();
 	$("#progress").show();
 	$.get(resultURL, function(data) {
 		$("#progress").hide();

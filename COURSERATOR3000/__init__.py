@@ -15,10 +15,12 @@ app = Flask(__name__)
 
 class TermConverter(BaseConverter):
     terms = {
-        "2014S": (1145, datetime(2014, 5, 5), datetime(2014, 8, 16)),
-        "2014F": (1149, datetime(2014, 9, 4), datetime(2014, 12, 19)),
+        "2014F": (1149, datetime(2014, 9, 2), datetime(2014, 12, 19)),
         "2015W": (1151, datetime(2015, 1, 5), datetime(2015, 4, 25)),
         "2015S": (1155, datetime(2015, 5, 4), datetime(2015, 8, 15)),
+        "2015F": (1159, datetime(2015, 9, 8), datetime(2015, 12, 22)),
+        "2016W": (1161, datetime(2016, 1, 4), datetime(2016, 4, 23)),
+        "2016S": (1165, datetime(2016, 5, 2), datetime(2016, 8, 13)),
     }
     
     def to_python(self, value):
@@ -32,9 +34,9 @@ app.url_map.converters["term"] = TermConverter
 class CourseListConverter(BaseConverter):
     def to_python(self, value):
         import re
-        result = value.split(",")
+        result = [course.strip() for course in value.split(",")]
         for course in result:
-            if not re.match("^\s*([a-zA-Z]+)\s*(\d\w*)\s*$", course): raise ValidationError()
+            if not re.match("^([a-zA-Z]+)\s*(\d\w*)$", course): raise ValidationError()
         return result
 
     def to_url(self, values):
