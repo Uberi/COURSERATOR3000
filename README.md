@@ -40,7 +40,7 @@ For "real" (production-grade) hosting, we'll be using Apache 2 and Flask over WS
 Make sure you have all the dependencies:
 
     sudo apt-get update
-    sudo apt-get install python3 python3-pip apache2 libapache2-mod-wsgi-py3
+    sudo apt-get install git python3 python3-pip apache2 libapache2-mod-wsgi-py3
 
 Set up the application in the desired directory (in this case, `/var/www`):
 
