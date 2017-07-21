@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>COURSERATOR 3000</title>
+	
+	<script src="static/jquery.js"></script>
+	<script src="static/moment.js"></script>
+
+	<link rel="stylesheet" href="static/fullcalendar/fullcalendar.css" />
+	<script src="static/fullcalendar/fullcalendar.js"></script>
+	
+	<link rel="stylesheet" href="static/datatables/css/jquery.dataTables.min.css" />
+	<script src="static/datatables/js/jquery.dataTables.min.js"></script>
+	
+	<link rel="stylesheet" href="static/style.css" />
+	<script src="static/courserator.js"></script>
+	
+	<style>
+	@media print {
+		body > * { display: none !important; }
+		#calendar { display: block !important; }
+	}
+	</style>
+</head>
+<body>
+	<h1>COURSERATOR 3000</h1>
+	<p style="font-size: 80%; margin-top: -0.8em;">by <a href="http://uberi.github.io/">Anthony Zhang</a></p>
+	<p>Schedule-free confli.. I mean... conflict-free schedules. It works!</p>
+	<form id="courses">
+		<select id="term" name="term">
+			{% for term in terms %}
+				{% if term[0] == term_to_select %}<option value="{{ term[0] }}" selected="selected">{{ term[1] }}</option>{% else %}<option value="{{ term[0] }}">{{ term[1] }}</option>{% endif %}
+			{% endfor %}
+		</select><input type="text" name="query" id="query" value="CS341, CS348, ECE222, STAT231, PHIL350" autofocus="autofocus"><input type="submit" value=">">
+	</form>
+	<p id="progress" style="display: none; font-size: 6em;">DEFROBNICATING THE GLUON MANIFOLD...</p>
+	<div class="separator">HERE COMES THE MAGIC</div>
+	<table id="scheduleList" class="display">
+		<thead>
+			<tr>
+				<th>start</th>
+				<th>end</th>
+			</tr>
+		</thead>
+		<tbody></tbody>
+	</table>
+	<a href="#" class="bigLink" onclick="showJSON(); return false;">YOU WANT JSON WITH THAT?</a>
+	<div class="separator">OH WOW IT ACTUALLY WORKED</div>
+	<div id="calendar"></div>
+	<a href="#" class="bigLink" onclick="window.print(); return false;">NOW OFF TO THE PRESSES (PRINT THIS PAGE)</a>
+	<a href="https://github.com/Uberi/COURSERATOR3000" class="bigLink">SOURCE CODE? WHERE?</a>
+</body>
+</html>

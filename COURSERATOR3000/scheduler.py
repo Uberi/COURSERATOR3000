@@ -10,11 +10,11 @@ class Scheduler:
         self.variable_index = 1 # used to generate unique variable names
         self.name_mapping = {}
         self.index_mapping = {}
-    
+
     def constrain_requirement(self, variable_list):
         """
         Adds a course requirement constraint to the schedule.
-        
+
         Generates CNF constraints such that exactly one of the variables in `variable_list` is true.
         """
         self.constraints.append(variable_list) # at least one variable is true
@@ -23,7 +23,7 @@ class Scheduler:
     def constrain_conflict(self, variable_list):
         """
         Adds a schedule conflict constraint between specified mutually conflicting sections to the schedule.
-        
+
         Generates CNF constraints such that zero or one of the variables in `variable_list` is true.
         """
         self.constraints += ([-a, -b] for a, b in itertools.combinations(variable_list, 2)) # no more than one variable is true
@@ -31,7 +31,7 @@ class Scheduler:
     def solve(self):
         """
         Produces an iterator for schedule possibilities that have no conflicts.
-        
+
         Solves the constraints using a SAT solving algorithm and processes the results.
         """
         return ([self.index_mapping[y] for y in x if y > 0] for x in pycosat.itersolve(self.constraints))
@@ -43,11 +43,11 @@ class Scheduler:
         result = self.variable_index
         self.variable_index += 1
         return result
-    
+
     def add_requirement(self, name, sections):
         section_variables = [self.register_variable((name, section)) for section in sections]
         self.constrain_requirement(section_variables)
-    
+
     def add_conflict(self, section1, section2):
         conflict_variables = [self.register_variable(section1), self.register_variable(section2)]
         self.constrain_conflict(conflict_variables)
@@ -55,7 +55,7 @@ class Scheduler:
 def block_compare(block1, block2):
     """
     Produces 0 if the blocks conflict, -1 if `block1` precedes `block2`, and 1 if `block1` follows `block2`.
-    
+
     Blocks are 2-tuples where the first element is the start time of a section block as a `datetime`, and the second element is the block duration as a `timedelta`.
     """
     if block1[1] <= block2[0]: return -1 # `block1` is too early to conflict with `block2`
@@ -65,7 +65,7 @@ def block_compare(block1, block2):
 def check_section_conflict(section1, section2): # $O(n)$ where $n$ is `max(len(section1), len(section2))`
     """
     Produces True if `section1` conflicts with `section2`, and False otherwise.
-    
+
     Sections are lists of blocks.
     """
     index1, index2 = 0, 0
@@ -101,7 +101,7 @@ def compute_schedules(course_sections):
     A course sections map is a dictionary mapping sections to lists of blocks.
 
     A section is a 2-tuple containing the course name and section name, both strings.
-    
+
     A block is a 2-tuple containing the start and end dates/times, both `datetime.datetime` objects. This represents a specific meeting event.
     """
     scheduler = Scheduler()
@@ -148,7 +148,7 @@ if __name__ == "__main__":
     print("Non-conflicting schedules:")
     for schedule in s.solve():
         print(schedule)
-    
+
     # test the conflict checker
     import datetime
     requirements = {

@@ -4,60 +4,101 @@ import re
 from datetime import datetime, timedelta
 
 try:
-    from . import uwapi # relative import
+    from .uwapi import uwapi # relative import
 except SystemError: # not being used as a module
-    import uwapi # normal import
+    from uwapi import uwapi # normal import
 
-def parse_date(value, default_date):
-    components = list(map(int, re.findall("\d+", value)))
-    assert 2 <= len(components) <= 3
-    if len(components) == 2: # month and day specified
-        return datetime(default_date.year, components[0], components[1])
-    return datetime(components[0], components[1], components[2]) # year, month, and day specified
+def parse_date(date_string, default_date):
+    """Given a string `date_string` of the form MM/DD or YY/MM/DD or YYYY-MM-DD, returns the date it represents."""
+    components = [int(digits) for digits in re.findall("\d+", date_string)]
+    if len(components) == 2:
+        return datetime(default_date.year, components[0], components[1]) # MM/DD date string
+    if len(components) == 3:
+        return datetime(components[0], components[1], components[2]) # YY/MM/DD date string
+    return default_date
 
-def get_class_times(description, default_start_date, default_end_date):
-    #wip: do something with "is_closed" and "enrollment_capacity" and "enrollment_total", like an option to use even closed classes
-    if description["start_time"] is None or description["end_time"] is None: # no specified time
-        return []
+def get_term_names(max_term_count = 5):
+    """Returns the `max_term_count` most recent term entries, and the term to select."""
+    response = uwapi("terms/list")
+    entries = sorted(
+        (str(entry["id"]), entry["name"])
+        for year, year_entries in response["listings"].items()
+        for entry in year_entries
+    )
+    return str(response["next_term"]), entries[-max_term_count:]
+
+def get_term_start_end_dates(term):
+    """Returns the dates that lectures start and end for the given term code `term`."""
+    response = uwapi("terms/{term}/importantdates".format(term=term))
+
+    # compute default dates to use in case we can't find the lecture start/end dates for the term
+    match = re.match("^(\d)(\d\d)(\d)$", term)
+    assert match is not None
+    start_date = datetime(1900 + int(match.group(1)) * 100 + int(match.group(2)), int(match.group(3)), 1)
+    end_date = datetime(start_date.year + (start_date.month + 4) // 12, (start_date.month + 4) % 12, 1)
+
+    # look for lecture start/end dates
+    for important_date in response:
+        if re.search(r"\bclasses\b.*\bbegin\b.*\buwaterloo\b", important_date["title"], re.IGNORECASE):
+            start_date = parse_date(important_date["start_date"], start_date)
+        elif re.search(r"\bclasses\b.*\bend\b", important_date["title"], re.IGNORECASE):
+            end_date = parse_date(important_date["start_date"], start_date)
     
-    # parse daily times into offsets from the beginning of its day
-    hours, minutes = map(int, description["start_time"].split(":"))
-    daily_start = timedelta(minutes=minutes, hours=hours)
-    hours, minutes = map(int, description["end_time"].split(":"))
-    daily_end = timedelta(minutes=minutes, hours=hours)
-    
-    # parse weekdays into a list of 2-tuples containing the offset of the course from the beginning of its week and its duration
-    weekdays = {"M": 0, "T": 1, "W": 2, "Th": 3, "F": 4, "S": 5, "Su": 6}
-    weekly_classes = []
-    for day in re.findall(r"Th|Su|M|T|W|F|S", description["weekdays"]):
-        current_day = timedelta(days=weekdays[day])
-        weekly_classes.append((current_day + daily_start, current_day + daily_end))
-    
-    # parse start/end dates
-    start = parse_date(description["start_date"], default_start_date) if description["start_date"] is not None else default_start_date
-    end = parse_date(description["end_date"], default_end_date) if description["end_date"] is not None else default_end_date
-    end = end + timedelta(days=1) # add one day to compare against the end of the day
-    
-    # generate class list
-    result = []
-    current_date = start - timedelta(days=start.weekday()) # beginning of the week containing the start date
-    while current_date < end:
-        for class_start_offset, class_end_offset in weekly_classes:
-            class_start, class_end = current_date + class_start_offset, current_date + class_end_offset
-            if class_start >= start and class_end < end:
-                result.append((class_start, class_end))
-        current_date = current_date + timedelta(weeks=1)
-    return result
+    return start_date, end_date
 
 def get_courses_data(term, course_list):
-    assert isinstance(term, int)
+    assert isinstance(term, str)
     result = {}
     for course in course_list:
         assert isinstance(course, str)
         subject, catalog_number = re.match("^\s*([a-zA-Z]+)\s*(\d\w*)\s*$", course).groups()
         assert subject and catalog_number
-        result[course] = uwapi.uwapi("terms/{0}/{1}/{2}/schedule".format(term, subject, catalog_number))
+        result[course] = uwapi("terms/{term}/{subject}/{catalog_number}/schedule".format(term=term, subject=subject, catalog_number=catalog_number))
     return result
+
+def get_class_times(description, default_start_date, default_end_date):
+    #wip: do something with "is_closed" and "enrollment_capacity" and "enrollment_total", like an option to use even closed classes
+    start_time_string, end_time_string, weekdays = description["start_time"], description["end_time"], description["weekdays"]
+    if start_time_string is None or end_time_string is None or weekdays is None:
+        return []
+    start_date_string, end_date_string = description["start_date"], description["end_date"]
+
+    # parse class imes like "14:05" into offsets from the beginning of the day
+    hours, minutes = start_time_string.split(":")
+    daily_start_offset = timedelta(minutes=int(minutes), hours=int(hours))
+    hours, minutes = end_time_string.split(":")
+    daily_end_offset = timedelta(minutes=int(minutes), hours=int(hours))
+
+    # parse weekdays like "TThF" into a list of 2-tuples containing the offset of the beginning/end of each class for a given week
+    weekday_offsets = {"M": 0, "T": 1, "W": 2, "Th": 3, "F": 4, "S": 5, "Su": 6}
+    weekly_class_offsets = []
+    for day in re.findall(r"Th|Su|M|T|W|F|S", weekdays):
+        current_day = timedelta(days=weekday_offsets[day])
+        weekly_class_offsets.append((current_day + daily_start_offset, current_day + daily_end_offset))
+
+    # parse start/end dates
+    if start_date_string is not None:
+        start_date = parse_date(start_date_string, default_start_date)
+    else:
+        start_date = default_start_date
+    if end_date_string is not None:
+        end_date = parse_date(end_date_string, default_end_date) + timedelta(days=1) # add one day to include the ending date
+    else:
+        end_date = default_end_date + timedelta(days=1) # add one day to include the ending date
+
+    # generate class list using the date range, days of week, and times of day
+    all_class_times = []
+    current_week_start = start_date - timedelta(days=start_date.weekday())  # beginning of the week containing the start date
+    while current_week_start < end_date:
+        for class_start_offset, class_end_offset in weekly_class_offsets:
+            class_start = current_week_start + class_start_offset
+            class_end = current_week_start + class_end_offset
+            if class_start >= start_date and class_end <= end_date:
+                all_class_times.append((class_start, class_end))
+
+        current_week_start += timedelta(weeks=1)  # move to the next week
+
+    return all_class_times
 
 def get_courses_sections(courses_data, default_start_date, default_end_date):
     result = {}

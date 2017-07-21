@@ -1,0 +1,16 @@
+language: python
+python:
+  - "3.4"
+  - "3.5"
+  - "3.6"
+  - "3.6-dev"
+  - "3.7-dev"
+  - "nightly"
+
+install:
+  - pip install flake8 rstcheck
+  - pip install -e .
+script:
+  - flake8 --ignore=E501,E701 COURSERATOR3000 # ignore errors for long lines and multi-statement lines
+  - python -m unittest discover --verbose # run unit tests
+sudo: false # this allows TravisCI to use the fast Docker build environment rather than the slower VMs

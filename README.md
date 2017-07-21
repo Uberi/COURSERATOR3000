@@ -5,11 +5,7 @@ Dead simple course schedule generator for University of Waterloo courses.
 
 ![Screenshot](screenshot.png)
 
-If you've ever used [Waterloo Course Qualifier](http://coursequalifier.com/) and gotten the below error message, this is for you.
-
-![Course Qualifier Error](course_qualifier_error.png)
-
-By using a powerful constraint solver, this service can handle extremely complex schedules with ease. See the "Implementation notes" section for details.
+By using a SAT solver, this service can handle extremely complex schedules with ease. See the "Implementation notes" section for details.
 
 Using it online
 ---------------
@@ -21,21 +17,21 @@ Using it online
 Hosting it yourself
 -------------------
 
-Is the site down? Want to set up your own Courserator instance? Here's how.
+Is the site down? Want to set up your own Courserator instance? On Debian and Debian-like environments like Ubuntu, run the following commands:
 
-Using just Flask:
-
-1. Download [this repository](https://github.com/Uberi/COURSERATOR-3000/archive/master.zip) and extract it somewhere.
-2. Make sure Python 3.4 with `pip` is installed. Test this by running `pip3` in the terminal. If it prints out `pip` usage instructions, everything is fine.
-3. OPTIONAL: If you are using Windows and want to avoid VS2008 (needed to compile Pycosat), install Pycosat from the included `pycosat-0.6.0.win32-py3.4.exe` installer.
-4. Run `build.bat` if using Windows, and `build.sh` otherwise. Wait for it to finish installing the Python packages needed to run this app.
-5. RECOMMENDED: Set your own uWaterloo API key for the app by changing `UW_API_KEY` in `uwapi.py`, line 3. You can get a key from [here](http://api.uwaterloo.ca/apikey/). If not specified, a default key is used.
-6. Run `__init__.py` to start the server.
+```bash
+git clone https://github.com/Uberi/COURSERATOR3000.git
+cd COURSERATOR3000
+python3 -m venv venv && ./venv/bin/activate # set up and enter virtual environment (optional)
+./build.sh # install dependencies
+python3 COURSERATOR3000/__init__.py # start server (press Ctrl + C to exit)
+deactivate # exit virtual environment (optional)
+```
 
 Hosting it properly
 -------------------
 
-For "real" (production-grade) hosting, we'll be using Apache 2 and Flask over WSGI. These instructions target Ubuntu DigitalOcean Droplets, but should work on any Debain-based system.
+For "real" (production-grade) hosting, we'll be using Apache 2 and Flask over WSGI. These instructions target Ubuntu DigitalOcean Droplets, but should work on any Debian-based system.
 
 Make sure you have all the dependencies:
 
@@ -45,7 +41,7 @@ Make sure you have all the dependencies:
 Set up the application in the desired directory (in this case, `/var/www`):
 
     cd /var/www
-    sudo git clone https://github.com/Uberi/COURSERATOR3000.git # if working offline, copy the folder containing this README to `/var/www` instead of using `git clone`
+    sudo git clone https://github.com/Uberi/COURSERATOR3000.git # if setting this up without an internet connection, just copy the folder containing this README to `/var/www` instead of using `git clone`
     cd /var/www/COURSERATOR3000/
     sudo bash build.sh
     sudo chmod +x COURSERATOR3000.wsgi # this needs to be executable for Apache to run it
@@ -101,7 +97,7 @@ Essentially:
 License
 -------
 
-Copyright 2014 Anthony Zhang.
+Copyright 2014-2017 Anthony Zhang.
 
 This program is licensed under the [GNU Affero General Public License](http://www.gnu.org/licenses/agpl-3.0.html).
 
